@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2015 the original author or authors.
+ * Copyright 2006-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,21 @@
 
 package com.consol.citrus.telnet.client;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.net.SocketException;
-
-import com.consol.citrus.telnet.model.*;
-
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.endpoint.AbstractEndpoint;
 import com.consol.citrus.exceptions.ActionTimeoutException;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
-
-import com.consol.citrus.message.*;
+import com.consol.citrus.message.Message;
 import com.consol.citrus.message.correlation.CorrelationManager;
 import com.consol.citrus.message.correlation.PollingCorrelationManager;
 import com.consol.citrus.messaging.*;
-
+import com.consol.citrus.telnet.model.TelnetRequest;
+import com.consol.citrus.telnet.model.TelnetResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.net.SocketException;
 
 /**
  * @author Michael Wurmbrand
@@ -42,46 +38,46 @@ import org.slf4j.LoggerFactory;
  */
 public class TelnetClient extends AbstractEndpoint implements Producer, ReplyConsumer {
     /** Logger */
-	private static Logger log = LoggerFactory.getLogger(TelnetClient.class);
-	
+    private static Logger log = LoggerFactory.getLogger(TelnetClient.class);
+
     /** Apache telnet client */
-	private org.apache.commons.net.telnet.TelnetClient telnetClient;
+    private org.apache.commons.net.telnet.TelnetClient telnetClient;
     
     /** Store of reply messages */
-	private CorrelationManager<Message> correlationManager;
+    private CorrelationManager<Message> correlationManager;
     
-	private final static String CONNECTION_REFUSED = "Connection refused";
-	private final String prompt;
-	private TelnetSession telnetSession;
+    private final static String CONNECTION_REFUSED = "Connection refused";
+    private final String prompt;
+    private TelnetSession telnetSession;
 
     /**
      * Default constructor initializing endpoint configuration.
      */
-	public TelnetClient() {
-		this(new TelnetEndpointConfiguration());
-	}
-	
+    public TelnetClient() {
+        this(new TelnetEndpointConfiguration());
+    }
+
     /**
      * Default constructor using endpoint configuration.
      * @param endpointConfiguration
      */	
-	public TelnetClient(TelnetEndpointConfiguration endpointConfiguration) {
-		super(endpointConfiguration);
-		this.telnetClient  = new org.apache.commons.net.telnet.TelnetClient();
-		this.prompt = endpointConfiguration.getPrompt();
+    public TelnetClient(TelnetEndpointConfiguration endpointConfiguration) {
+        super(endpointConfiguration);
+        this.telnetClient  = new org.apache.commons.net.telnet.TelnetClient();
+        this.prompt = endpointConfiguration.getPrompt();
         this.correlationManager = new PollingCorrelationManager<Message>(endpointConfiguration, "Reply message did not arrive yet");
         this.telnetClient.setConnectTimeout(getEndpointConfiguration().getConnectionTimeout());
-	}
+    }
 
     @Override
     public TelnetEndpointConfiguration getEndpointConfiguration() {
-    	return (TelnetEndpointConfiguration) super.getEndpointConfiguration();
+        return (TelnetEndpointConfiguration) super.getEndpointConfiguration();
     }
 
-	@Override
-	public void send(Message message, TestContext context) {
+    @Override
+    public void send(Message message, TestContext context) {
 
-		String correlationKeyName = getEndpointConfiguration().getCorrelator().getCorrelationKeyName(getName());
+        String correlationKeyName = getEndpointConfiguration().getCorrelator().getCorrelationKeyName(getName());
         String correlationKey = getEndpointConfiguration().getCorrelator().getCorrelationKey(message);
         correlationManager.saveCorrelationKey(correlationKeyName, correlationKey, context);
         
@@ -89,155 +85,155 @@ public class TelnetClient extends AbstractEndpoint implements Producer, ReplyCon
         String reply = null;
         TelnetEndpointConfiguration ec = (TelnetEndpointConfiguration) super.getEndpointConfiguration();
         if (log.isDebugEnabled()) {
-        	log.debug("CONNECTING telnet://{}:{}@{}:{}", ec.getUser(), ec.getPassword(), ec.getHost(), ec.getPort());
+            log.debug("CONNECTING telnet://{}:{}@{}:{}", ec.getUser(), ec.getPassword(), ec.getHost(), ec.getPort());
         }
-		
+
         try {
-			telnetSession = connect(ec.getHost(),ec.getPort());
-			login(ec.getUser(),ec.getPassword());
-			write(request.getCommand());
-			reply = readUntil(prompt + " ");
-		} catch (SocketException e) {
-			throw new CitrusRuntimeException("Unexpected socket failure",e);
-		} catch (IOException e) {
-			throw new CitrusRuntimeException("Unexpected io failure",e);
-		} catch (ConnectionRefusedException e) {
-			reply = CONNECTION_REFUSED;
-		} finally {
-			if (telnetSession!=null) {				
-				telnetSession.close();
-			}
-	        log.debug("DISCONNECT");
-			disconnect();
-		}
+            telnetSession = connect(ec.getHost(),ec.getPort());
+            login(ec.getUser(),ec.getPassword());
+            write(request.getCommand());
+            reply = readUntil(prompt + " ");
+        } catch (SocketException e) {
+            throw new CitrusRuntimeException("Unexpected socket failure",e);
+        } catch (IOException e) {
+            throw new CitrusRuntimeException("Unexpected io failure",e);
+        } catch (ConnectionRefusedException e) {
+            reply = CONNECTION_REFUSED;
+        } finally {
+            if (telnetSession!=null) {
+                telnetSession.close();
+            }
+            log.debug("DISCONNECT");
+            disconnect();
+        }
         TelnetResponse telnetResponse = new TelnetResponse(reply);
         Message response = getEndpointConfiguration().getMessageConverter().convertInbound(telnetResponse, getEndpointConfiguration())
                 .setHeader("user", ec.getUser());
         correlationManager.store(correlationKey, response);
        
-	}
+    }
 
-	private TelnetSession connect(String host, int port) throws SocketException, IOException {
-		telnetClient.connect(host,port);
-		// Get input and output stream references 
-		return new TelnetSession(telnetClient.getInputStream(), new PrintStream(telnetClient.getOutputStream()));
-	}
-	
-	private void login(String user, String password) throws ConnectionRefusedException, IOException {
-		// Log the user on
-		String reply = readUntil("login: ");
-		if (telnetClient.isConnected()==false || (reply!=null && reply.contains(CONNECTION_REFUSED))) {
-			throw new ConnectionRefusedException();			
-		}
-		write(user);
-		readUntil("password: ");
-		write(password);
-		// Advance to a prompt
-		readUntil(prompt + " ");
-	}
-	
-	
-	private String readUntil(String pattern) throws IOException {
-		StringBuffer sb = new StringBuffer();
-		byte[] buf = new byte[1024];
-		long timeout = System.currentTimeMillis() + getEndpointConfiguration().getCommandTimeout();
-		while (timeout > System.currentTimeMillis()) {
-			int len = telnetSession.getIn().available();
-			if (len > 0) {
-				telnetSession.getIn().read(buf, 0, len);
-				String chunk = new String(buf,0,len);
-				System.out.print(chunk);
-				sb.append(chunk);
-				int patternIndex = sb.indexOf(pattern);
-				if (patternIndex>=0) {
-					return sb.substring(0,patternIndex).trim();
-				}
-				timeout = System.currentTimeMillis() + getEndpointConfiguration().getCommandTimeout();
-			}
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				// ok
-			}
-		}
-		return sb.toString().trim();
-	}
+    private TelnetSession connect(String host, int port) throws SocketException, IOException {
+        telnetClient.connect(host,port);
+        // Get input and output stream references
+        return new TelnetSession(telnetClient.getInputStream(), new PrintStream(telnetClient.getOutputStream()));
+    }
 
-	private void write(String value) {
-		try {
-			telnetSession.getOut().println(value);
-			telnetSession.getOut().flush();
-			System.out.println(value);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+    private void login(String user, String password) throws ConnectionRefusedException, IOException {
+        // Log the user on
+        String reply = readUntil("login: ");
+        if (telnetClient.isConnected()==false || (reply!=null && reply.contains(CONNECTION_REFUSED))) {
+            throw new ConnectionRefusedException();
+        }
+        write(user);
+        readUntil("password: ");
+        write(password);
+        // Advance to a prompt
+        readUntil(prompt + " ");
+    }
 
-	public String sendCommand(String command) {
-		try {
-			write(command);
-			readUntil(prompt + " ");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
 
-	public void disconnect() {
-		try {
-			telnetClient.disconnect();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private static class TelnetSession {
-		private final InputStream in;
-		private final PrintStream out;
-		
-		private TelnetSession(InputStream in, PrintStream out) {
-			super();
-			this.in = in;
-			this.out = out;
-		}
+    private String readUntil(String pattern) throws IOException {
+        StringBuffer sb = new StringBuffer();
+        byte[] buf = new byte[1024];
+        long timeout = System.currentTimeMillis() + getEndpointConfiguration().getCommandTimeout();
+        while (timeout > System.currentTimeMillis()) {
+            int len = telnetSession.getIn().available();
+            if (len > 0) {
+                telnetSession.getIn().read(buf, 0, len);
+                String chunk = new String(buf,0,len);
+                System.out.print(chunk);
+                sb.append(chunk);
+                int patternIndex = sb.indexOf(pattern);
+                if (patternIndex>=0) {
+                    return sb.substring(0,patternIndex).trim();
+                }
+                timeout = System.currentTimeMillis() + getEndpointConfiguration().getCommandTimeout();
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                // ok
+            }
+        }
+        return sb.toString().trim();
+    }
 
-		public InputStream getIn() {
-			return in;
-		}
+    private void write(String value) {
+        try {
+            telnetSession.getOut().println(value);
+            telnetSession.getOut().flush();
+            System.out.println(value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-		public PrintStream getOut() {
-			return out;
-		}
-		
-		public void close() {
-			try {
-				in.close();
-			} catch (IOException e) {
-				// do nothing
-			}
-			out.close();
-		}
-	}
+    public String sendCommand(String command) {
+        try {
+            write(command);
+            readUntil(prompt + " ");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
-	@Override
-	public Message receive(TestContext context) {
+    public void disconnect() {
+        try {
+            telnetClient.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static class TelnetSession {
+        private final InputStream in;
+        private final PrintStream out;
+
+        private TelnetSession(InputStream in, PrintStream out) {
+            super();
+            this.in = in;
+            this.out = out;
+        }
+
+        public InputStream getIn() {
+            return in;
+        }
+
+        public PrintStream getOut() {
+            return out;
+        }
+
+        public void close() {
+            try {
+                in.close();
+            } catch (IOException e) {
+                // do nothing
+            }
+            out.close();
+        }
+    }
+
+    @Override
+    public Message receive(TestContext context) {
         return receive(correlationManager.getCorrelationKey(
                 getEndpointConfiguration().getCorrelator().getCorrelationKeyName(getName()), context), context);
-	}
+    }
 
-	@Override
-	public Message receive(String selector, TestContext context) {
-		return receive(selector, context, getEndpointConfiguration().getTimeout());
-	}
-	
-	@Override
-	public Message receive(TestContext context, long timeout) {
+    @Override
+    public Message receive(String selector, TestContext context) {
+        return receive(selector, context, getEndpointConfiguration().getTimeout());
+    }
+
+    @Override
+    public Message receive(TestContext context, long timeout) {
         return receive(correlationManager.getCorrelationKey(
                 getEndpointConfiguration().getCorrelator().getCorrelationKeyName(getName()), context), context, timeout);
-	}
+    }
  
-	@Override
-	public Message receive(String selector, TestContext context, long timeout) {
+    @Override
+    public Message receive(String selector, TestContext context, long timeout) {
         Message message = correlationManager.find(selector, timeout);
 
         if (message == null) {
@@ -246,7 +242,7 @@ public class TelnetClient extends AbstractEndpoint implements Producer, ReplyCon
 
         return message;
      }
-	
+
     /**
      * Creates a message producer for this endpoint for sending messages
      * to this endpoint.

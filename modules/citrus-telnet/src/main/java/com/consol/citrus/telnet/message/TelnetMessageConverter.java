@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2015 the original author or authors.
+ * Copyright 2006-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,13 @@
 
 package com.consol.citrus.telnet.message;
 
-import javax.xml.transform.Source;
-
-import org.springframework.xml.transform.StringResult;
-
 import com.consol.citrus.exceptions.CitrusRuntimeException;
-import com.consol.citrus.message.DefaultMessage;
-import com.consol.citrus.message.Message;
-import com.consol.citrus.message.MessageConverter;
+import com.consol.citrus.message.*;
 import com.consol.citrus.telnet.client.TelnetEndpointConfiguration;
 import com.consol.citrus.telnet.model.TelnetMessage;
+import org.springframework.xml.transform.StringResult;
+
+import javax.xml.transform.Source;
 
 /**
  * @author Donat Müller

@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2015 the original author or authors.
+ * Copyright 2006-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,12 @@
 package com.consol.citrus.telnet.integration;
 
 import com.consol.citrus.annotations.CitrusXmlTest;
+import com.consol.citrus.telnet.server.TelnetSimpleServer;
 import com.consol.citrus.testng.AbstractTestNGCitrusTest;
-
-import java.io.IOException;
-
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
-import com.consol.citrus.telnet.server.*;
+
+import java.io.IOException;
 
 /**
  * @author Michael Wurmbrand
@@ -32,21 +31,21 @@ import com.consol.citrus.telnet.server.*;
 @Test
 public class TelnetEndpointIT extends AbstractTestNGCitrusTest {
 
-	TelnetSimpleServer telnetServer;
-	
+    TelnetSimpleServer telnetServer;
+
     @BeforeSuite
     public void setup() {
     
-			try {
-				 telnetServer = new TelnetSimpleServer(4011);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-	
+            try {
+                 telnetServer = new TelnetSimpleServer(4011);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
     }
     
     @CitrusXmlTest(name = "TelnetEndpointIT")
     public void testTelnetClient() {
-    	telnetServer.run();
+        telnetServer.run();
     }
 }

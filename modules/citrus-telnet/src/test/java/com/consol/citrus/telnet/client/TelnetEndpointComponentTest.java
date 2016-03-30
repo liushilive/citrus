@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2015 the original author or authors.
+ * Copyright 2006-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,9 +55,9 @@ public class TelnetEndpointComponentTest {
 
     @Test
     public void testCreateEndpointWithoutPort() throws Exception {
-    	TelnetEndpointComponent component = new TelnetEndpointComponent();
+        TelnetEndpointComponent component = new TelnetEndpointComponent();
 
-    	Endpoint endpoint = component.createEndpoint("telnet://user:password@127.0.0.1", context);
+        Endpoint endpoint = component.createEndpoint("telnet://user:password@127.0.0.1", context);
 
         Assert.assertEquals(endpoint.getClass(), TelnetClient.class);
 
@@ -68,7 +68,7 @@ public class TelnetEndpointComponentTest {
 
     @Test
     public void testCreateEndpointWithParameters() throws Exception {
-    	TelnetEndpointComponent component = new TelnetEndpointComponent();
+        TelnetEndpointComponent component = new TelnetEndpointComponent();
 
         Endpoint endpoint = component.createEndpoint("telnet://user:password@localhost:23?timeout=10000&user=foo&password=12345678", context);
 

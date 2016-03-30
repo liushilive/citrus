@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2015 the original author or authors.
+ * Copyright 2006-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import com.consol.citrus.message.MessageCorrelator;
  */
 public class TelnetEndpointConfiguration extends AbstractPollableEndpointConfiguration {
 
-	/** Host to connect to. Default: localhost */
+    /** Host to connect to. Default: localhost */
     private String host = "localhost";
 
      /** Telnet Port to connect to. Default: 23 */
@@ -57,45 +57,45 @@ public class TelnetEndpointConfiguration extends AbstractPollableEndpointConfigu
     /** Telnet message converter */
     private TelnetMessageConverter messageConverter = new TelnetMessageConverter();
     
-	public String getHost() {
-		return host;
-	}
+    public String getHost() {
+        return host;
+    }
 
-	public void setHost(String host) {
-		this.host = host;
-	}
+    public void setHost(String host) {
+        this.host = host;
+    }
 
-	public int getPort() {
-		return port;
-	}
+    public int getPort() {
+        return port;
+    }
 
-	public void setPort(int port) {
-		this.port = port;
-	}
+    public void setPort(int port) {
+        this.port = port;
+    }
 
-	public String getUser() {
-		return user;
-	}
+    public String getUser() {
+        return user;
+    }
 
-	public void setUser(String user) {
-		this.user = user;
-	}
+    public void setUser(String user) {
+        this.user = user;
+    }
 
-	public String getPassword() {
-		return password;
-	}
+    public String getPassword() {
+        return password;
+    }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-	public String getPrompt() {
-		return prompt;
-	}
+    public String getPrompt() {
+        return prompt;
+    }
 
-	public void setPrompt(String prompt) {
-		this.prompt = prompt;
-	}
+    public void setPrompt(String prompt) {
+        this.prompt = prompt;
+    }
 
     /**
      * Gets the command timeout.
@@ -145,20 +145,20 @@ public class TelnetEndpointConfiguration extends AbstractPollableEndpointConfigu
         this.correlator = correlator;
     }
 
-	public TelnetMarshaller getTelnetMarshaller() {
-		return telnetMarshaller;
-	}
+    public TelnetMarshaller getTelnetMarshaller() {
+        return telnetMarshaller;
+    }
 
-	public void setTelnetMarshaller(TelnetMarshaller telnetMarshaller) {
-		this.telnetMarshaller = telnetMarshaller;
-	}
+    public void setTelnetMarshaller(TelnetMarshaller telnetMarshaller) {
+        this.telnetMarshaller = telnetMarshaller;
+    }
 
-	public TelnetMessageConverter getMessageConverter() {
-		return messageConverter;
-	}
+    public TelnetMessageConverter getMessageConverter() {
+        return messageConverter;
+    }
 
-	public void setMessageConverter(TelnetMessageConverter messageConverter) {
-		this.messageConverter = messageConverter;
-	}
+    public void setMessageConverter(TelnetMessageConverter messageConverter) {
+        this.messageConverter = messageConverter;
+    }
 
 }

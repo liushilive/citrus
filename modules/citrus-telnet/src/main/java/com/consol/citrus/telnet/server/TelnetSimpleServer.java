@@ -1,7 +1,5 @@
-package com.consol.citrus.telnet.server;
-
 /*
- * Copyright 2006-2015 the original author or authors.
+ * Copyright 2006-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +14,15 @@ package com.consol.citrus.telnet.server;
  * limitations under the License.
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+package com.consol.citrus.telnet.server;
 
+import com.consol.citrus.telnet.client.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.consol.citrus.telnet.client.TelnetClient;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 /***
  * Simple TCP server.
@@ -38,9 +35,9 @@ public class TelnetSimpleServer implements Runnable
 {
 
     /** Logger */
-	private static Logger log = LoggerFactory.getLogger(TelnetClient.class);
-	
-	ServerSocket serverSocket = null;
+    private static Logger log = LoggerFactory.getLogger(TelnetClient.class);
+
+    ServerSocket serverSocket = null;
     Socket clientSocket = null;
     Thread listener = null;
 
@@ -73,7 +70,7 @@ public class TelnetSimpleServer implements Runnable
                 {
                     try
                     {
-                    	clientSocket.wait();
+                        clientSocket.wait();
                     }
                     catch (Exception e)
                     {
@@ -81,7 +78,7 @@ public class TelnetSimpleServer implements Runnable
                     }
                     try
                     {
-                    	log.info("--------------- OUTPUT 1");
+                        log.info("--------------- OUTPUT 1");
                     }
                     catch (Exception e)
                     {
@@ -152,7 +149,7 @@ public class TelnetSimpleServer implements Runnable
         }
         else
         {
-        	 return(null);
+             return(null);
         }
     }
 
@@ -163,12 +160,12 @@ public class TelnetSimpleServer implements Runnable
     {
         if(clientSocket != null)
         {
-        	return(clientSocket.getOutputStream());
+            return(clientSocket.getOutputStream());
             
         }
         else
         {
-        	return(null);
+            return(null);
         }
     }
 }

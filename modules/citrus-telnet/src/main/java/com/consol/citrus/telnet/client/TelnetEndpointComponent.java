@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2015 the original author or authors.
+ * Copyright 2006-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,15 +28,15 @@ import java.util.StringTokenizer;
  */
 public class TelnetEndpointComponent extends AbstractEndpointComponent {
 
-	/**
-	 * Component creates proper telnet client from endpoint uri resource and parameters.
-	 * telnet://<user>:<password>@<host>[:<port>/]
-	 */
-	@Override
-	protected Endpoint createEndpoint(String resourcePath, Map<String, String> parameters,
-			TestContext context) {
+    /**
+     * Component creates proper telnet client from endpoint uri resource and parameters.
+     * telnet://<user>:<password>@<host>[:<port>/]
+     */
+    @Override
+    protected Endpoint createEndpoint(String resourcePath, Map<String, String> parameters,
+            TestContext context) {
         
-		TelnetClient telnetClient = new TelnetClient();
+        TelnetClient telnetClient = new TelnetClient();
         
         // assume resourcepath has striped protocol
         StringTokenizer tok = new StringTokenizer(resourcePath, ":@");
@@ -44,10 +44,10 @@ public class TelnetEndpointComponent extends AbstractEndpointComponent {
         telnetClient.getEndpointConfiguration().setPassword(tok.nextToken());
         telnetClient.getEndpointConfiguration().setHost(tok.nextToken());
         if (tok.hasMoreTokens()) {
-        	telnetClient.getEndpointConfiguration().setPort(Integer.parseInt(tok.nextToken()));
+            telnetClient.getEndpointConfiguration().setPort(Integer.parseInt(tok.nextToken()));
         }
         enrichEndpointConfiguration(telnetClient.getEndpointConfiguration(),  getEndpointConfigurationParameters(parameters, TelnetEndpointConfiguration.class), context);
         
         return telnetClient;
-	}
+    }
 }
