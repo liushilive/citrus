@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans  xmlns="http://www.springframework.org/schema/beans"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:citrus-kubernetes="http://www.citrusframework.org/schema/kubernetes/config"
+        xmlns:citrus-k8s="http://www.citrusframework.org/schema/kubernetes/config"
         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                             http://www.citrusframework.org/schema/kubernetes/config http://www.citrusframework.org/schema/kubernetes/config/citrus-kubernetes-config.xsd">
 
-  <citrus-kubernetes:client id="kubernetesClient1"/>
+  <citrus-k8s:client id="kubernetesClient1"/>
 
-  <citrus-kubernetes:client id="kubernetesClient2"
+  <citrus-k8s:client id="kubernetesClient2"
                           url="http://localhost:8843"
                           version="v1"
                           username="user"
