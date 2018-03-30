@@ -16,15 +16,8 @@
 
 package com.consol.citrus.endpoint.adapter.mapping;
 
-import com.consol.citrus.exceptions.CitrusRuntimeException;
-import com.consol.citrus.exceptions.ValidationException;
+import com.consol.citrus.json.JsonPathUtils;
 import com.consol.citrus.message.Message;
-import com.consol.citrus.validation.json.JsonPathFunctions;
-import com.jayway.jsonpath.*;
-import net.minidev.json.JSONArray;
-import net.minidev.json.parser.JSONParser;
-import net.minidev.json.parser.ParseException;
-import org.springframework.util.StringUtils;
 
 /**
  * @author Christoph Deppisch
@@ -37,42 +30,7 @@ public class JsonPayloadMappingKeyExtractor extends AbstractMappingKeyExtractor 
 
     @Override
     public String getMappingKey(Message request) {
-        try {
-            JSONParser parser = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
-            Object receivedJson = parser.parse(request.getPayload(String.class));
-            ReadContext readerContext = JsonPath.parse(receivedJson);
-
-            String expression = jsonPathExpression;
-            String jsonPathFunction = null;
-            for (String name : JsonPathFunctions.getSupportedFunctions()) {
-                if (expression.endsWith(String.format(".%s()", name))) {
-                    jsonPathFunction = name;
-                    expression = expression.substring(0, expression.length() - String.format(".%s()", name).length());
-                }
-            }
-
-            Object jsonPathResult;
-            if (JsonPath.isPathDefinite(expression)) {
-                jsonPathResult = readerContext.read(expression);
-            } else {
-                JSONArray values = readerContext.read(expression);
-                if (values.size() == 1) {
-                    jsonPathResult = values.get(0);
-                } else {
-                    jsonPathResult = values.toJSONString();
-                }
-            }
-
-            if (StringUtils.hasText(jsonPathFunction)) {
-                jsonPathResult = JsonPathFunctions.evaluate(jsonPathResult, jsonPathFunction);
-            }
-
-            return jsonPathResult.toString();
-        } catch (ParseException e) {
-            throw new CitrusRuntimeException("Failed to parse JSON text", e);
-        } catch (PathNotFoundException e) {
-            throw new ValidationException(String.format("Failed to extract JSON element for path: %s", jsonPathExpression), e);
-        }
+        return JsonPathUtils.evaluateAsString(request.getPayload(String.class), jsonPathExpression);
     }
 
     /**

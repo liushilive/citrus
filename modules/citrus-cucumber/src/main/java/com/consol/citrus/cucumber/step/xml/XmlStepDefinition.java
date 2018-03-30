@@ -19,9 +19,7 @@ package com.consol.citrus.cucumber.step.xml;
 import com.consol.citrus.cucumber.container.StepTemplate;
 import cucumber.api.java.ObjectFactory;
 import cucumber.runtime.*;
-import gherkin.I18n;
-import gherkin.formatter.Argument;
-import gherkin.formatter.model.Step;
+import gherkin.pickles.PickleStep;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -34,7 +32,7 @@ import java.util.List;
 public class XmlStepDefinition implements StepDefinition {
 
     private final JdkPatternArgumentMatcher argumentMatcher;
-    private final List<ParameterInfo> parameterInfos;
+    private final List<ParameterInfo> parameters;
 
     private final ObjectFactory objectFactory;
 
@@ -45,12 +43,12 @@ public class XmlStepDefinition implements StepDefinition {
         this.stepTemplate = stepTemplate;
 
         this.argumentMatcher = new JdkPatternArgumentMatcher(stepTemplate.getPattern());
-        this.parameterInfos = ParameterInfo.fromTypes(stepTemplate.getParameterTypes());
+        this.parameters = ParameterInfo.fromTypes(stepTemplate.getParameterTypes());
     }
 
     @Override
-    public List<Argument> matchedArguments(Step step) {
-        return argumentMatcher.argumentsFrom(step.getName());
+    public List<Argument> matchedArguments(PickleStep step) {
+        return argumentMatcher.argumentsFrom(step.getText());
     }
 
     @Override
@@ -60,22 +58,22 @@ public class XmlStepDefinition implements StepDefinition {
 
     @Override
     public Integer getParameterCount() {
-        return parameterInfos.size();
+        return parameters.size();
     }
 
     @Override
     public ParameterInfo getParameterType(int n, Type argumentType) throws IndexOutOfBoundsException {
-        return parameterInfos.get(n);
+        return parameters.get(n);
     }
 
     @Override
-    public void execute(I18n i18n, Object[] args) throws Throwable {
+    public void execute(String language, Object[] args) throws Throwable {
         objectFactory.getInstance(XmlSteps.class).execute(stepTemplate, args);
     }
 
     @Override
     public boolean isDefinedAt(StackTraceElement stackTraceElement) {
-        return stackTraceElement.getClassName().equals(XmlSteps.class);
+        return stackTraceElement.getClassName().equals(XmlSteps.class.getName());
     }
 
     @Override

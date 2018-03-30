@@ -1,14 +1,14 @@
 ---
 layout: sample
 title: Http REST sample
-sample: sample-rest
+sample: sample-http
 description: Shows REST API calls as a client
 categories: [samples]
 permalink: /samples/http/
 ---
 
 This sample demonstrates the Http REST capabilities in Citrus where Citrus calls REST API on a todo web application. REST features are
-also described in detail in [reference guide](http://www.citrusframework.org/reference/html/index.html#http)
+also described in detail in [reference guide](http://www.citrusframework.org/reference/html/#http-rest)
 
 Objectives
 ---------
@@ -18,9 +18,14 @@ Citrus is able to call the API methods as a client in order to validate the Http
 
 We need a Http client component in the configuration:
 
-{% highlight xml %}
-<citrus-http:client id="todoClient"
-                    request-url="http://localhost:8080"/>
+{% highlight java %}
+@Bean
+public HttpClient todoClient() {
+    return CitrusEndpoints.http()
+                        .client()
+                        .requestUrl("http://localhost:8080")
+                        .build();
+}
 {% endhighlight %}
    
 In test cases we can reference this client component in order to send REST calls to the server.

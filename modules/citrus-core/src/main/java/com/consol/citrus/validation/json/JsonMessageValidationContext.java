@@ -16,7 +16,8 @@
 
 package com.consol.citrus.validation.json;
 
-import com.consol.citrus.validation.context.ValidationContext;
+import com.consol.citrus.validation.context.DefaultValidationContext;
+import com.consol.citrus.validation.context.SchemaValidationContext;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,10 +27,24 @@ import java.util.Set;
  * @author Christoph Deppisch
  * @since 2.3
  */
-public class JsonMessageValidationContext implements ValidationContext {
+public class JsonMessageValidationContext extends DefaultValidationContext implements SchemaValidationContext {
 
     /** Map holding xpath expressions to identify the ignored message elements */
     private Set<String> ignoreExpressions = new HashSet<>();
+
+    /**
+     * Should message be validated with its schema definition
+     *
+     * This is currently disabled by default, because old json tests would fail with a validation exception
+     * as soon as a json schema repository is specified and the schema validation is activated.
+     */
+    private boolean schemaValidation = false;
+
+    /** Explicit schema repository to use for this validation */
+    private String schemaRepository;
+
+    /** Explicit schema instance to use for this validation */
+    private String schema;
 
     /**
      * Get ignored message elements.
@@ -46,5 +61,51 @@ public class JsonMessageValidationContext implements ValidationContext {
     public void setIgnoreExpressions(Set<String> ignoreExpressions) {
         this.ignoreExpressions = ignoreExpressions;
     }
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isSchemaValidationEnabled() {
+        return schemaValidation;
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSchemaValidation(boolean schemaValidation) {
+        this.schemaValidation = schemaValidation;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getSchemaRepository() {
+        return schemaRepository;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSchemaRepository(String schemaRepository) {
+        this.schemaRepository = schemaRepository;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getSchema() {
+        return schema;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
 }

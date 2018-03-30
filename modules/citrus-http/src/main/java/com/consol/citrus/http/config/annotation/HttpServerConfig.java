@@ -66,6 +66,18 @@ public @interface HttpServerConfig {
     String connector() default "";
 
     /**
+     * Filter references.
+     * @return
+     */
+    String[] filters() default {};
+
+    /**
+     * Filter mapping references.
+     * @return
+     */
+    String[] filterMappings() default {};
+
+    /**
      * Servlet name.
      * @return
      */
@@ -102,6 +114,18 @@ public @interface HttpServerConfig {
     String messageConverter() default "";
 
     /**
+     * Handle attribute headers.
+     * @return
+     */
+    boolean handleAttributeHeaders() default false;
+
+    /**
+     * Handle cookies.
+     * @return
+     */
+    boolean handleCookies() default false;
+
+    /**
      * Auto start.
      * @return
      */
@@ -118,6 +142,12 @@ public @interface HttpServerConfig {
      * @return
      */
     String endpointAdapter() default "";
+
+    /**
+     * Debug logging enabled.
+     * @return
+     */
+    boolean debugLogging() default false;
 
     /**
      * Interceptor references.

@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.jdbc.core.support.JdbcDaoSupport;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,11 +57,23 @@ public abstract class AbstractDatabaseConnectingTestAction extends JdbcDaoSuppor
     /** This actions explicit test actor */
     private TestActor actor;
 
+    /** Optional transaction manager */
+    private PlatformTransactionManager transactionManager;
+    private String transactionTimeout = String.valueOf(TransactionDefinition.TIMEOUT_DEFAULT);
+    private String transactionIsolationLevel = "ISOLATION_DEFAULT";
+
+    /** Finished indicator */
+    private boolean finished = false;
+
     /**
      * Do basic logging and delegate execution to subclass.
      */
     public void execute(TestContext context) {
-        doExecute(context);
+        try {
+            doExecute(context);
+        } finally {
+            finished = true;
+        }
     }
     
     /**
@@ -171,6 +185,60 @@ public abstract class AbstractDatabaseConnectingTestAction extends JdbcDaoSuppor
      */
     public List<String> getStatements() {
         return statements;
+    }
+
+    /**
+     * Gets the transactionManager.
+     *
+     * @return
+     */
+    public PlatformTransactionManager getTransactionManager() {
+        return transactionManager;
+    }
+
+    /**
+     * Sets the transactionManager.
+     *
+     * @param transactionManager
+     */
+    public void setTransactionManager(PlatformTransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+    }
+
+    /**
+     * Gets the transactionTimeout.
+     *
+     * @return
+     */
+    public String getTransactionTimeout() {
+        return transactionTimeout;
+    }
+
+    /**
+     * Sets the transactionTimeout.
+     *
+     * @param transactionTimeout
+     */
+    public void setTransactionTimeout(String transactionTimeout) {
+        this.transactionTimeout = transactionTimeout;
+    }
+
+    /**
+     * Gets the transactionIsolationLevel.
+     *
+     * @return
+     */
+    public String getTransactionIsolationLevel() {
+        return transactionIsolationLevel;
+    }
+
+    /**
+     * Sets the transactionIsolationLevel.
+     *
+     * @param transactionIsolationLevel
+     */
+    public void setTransactionIsolationLevel(String transactionIsolationLevel) {
+        this.transactionIsolationLevel = transactionIsolationLevel;
     }
 
     /**

@@ -16,7 +16,8 @@
 
 package com.consol.citrus.validation.xml;
 
-import com.consol.citrus.validation.context.ValidationContext;
+import com.consol.citrus.validation.context.DefaultValidationContext;
+import com.consol.citrus.validation.context.SchemaValidationContext;
 import org.springframework.core.io.Resource;
 
 import java.util.*;
@@ -27,18 +28,18 @@ import java.util.*;
  * 
  * @author Christoph Deppisch
  */
-public class XmlMessageValidationContext implements ValidationContext {
+public class XmlMessageValidationContext extends DefaultValidationContext implements SchemaValidationContext {
     /** Map holding xpath expressions to identify the ignored message elements */
-    private Set<String> ignoreExpressions = new HashSet<String>();
+    private Set<String> ignoreExpressions = new HashSet<>();
 
     /** Namespace definitions resolving namespaces in XML message validation */
-    private Map<String, String> namespaces = new HashMap<String, String>();
+    private Map<String, String> namespaces = new HashMap<>();
     
     /** dtdResource for DTD validation */
     private Resource dtdResource;
     
     /** Map holding control namespaces for validation */
-    private Map<String, String> controlNamespaces = new HashMap<String, String>();
+    private Map<String, String> controlNamespaces = new HashMap<>();
     
     /** Should message be validated with its schema definition */
     private boolean schemaValidation = true;
@@ -114,49 +115,49 @@ public class XmlMessageValidationContext implements ValidationContext {
     }
 
     /**
-     * Is schema validation enabled.
-     * @return the schemaValidation
+     * {@inheritDoc}
      */
+    @Override
     public boolean isSchemaValidationEnabled() {
         return schemaValidation;
     }
 
     /**
-     * Enable/disable schema validation.
-     * @param schemaValidation the schemaValidation to set
+     * {@inheritDoc}
      */
+    @Override
     public void setSchemaValidation(boolean schemaValidation) {
         this.schemaValidation = schemaValidation;
     }
 
     /**
-     * Gets the schemaRepository.
-     * @return the schemaRepository the schemaRepository to get.
+     * {@inheritDoc}
      */
+    @Override
     public String getSchemaRepository() {
         return schemaRepository;
     }
 
     /**
-     * Sets the schemaRepository.
-     * @param schemaRepository the schemaRepository to set
+     * {@inheritDoc}
      */
+    @Override
     public void setSchemaRepository(String schemaRepository) {
         this.schemaRepository = schemaRepository;
     }
 
     /**
-     * Gets the schema.
-     * @return the schema the schema to get.
+     * {@inheritDoc}
      */
+    @Override
     public String getSchema() {
         return schema;
     }
 
     /**
-     * Sets the schema.
-     * @param schema the schema to set
+     * {@inheritDoc}
      */
+    @Override
     public void setSchema(String schema) {
         this.schema = schema;
     }

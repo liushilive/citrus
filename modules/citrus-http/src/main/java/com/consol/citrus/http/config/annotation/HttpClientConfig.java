@@ -80,6 +80,18 @@ public @interface HttpClientConfig {
     String charset() default "UTF-8";
 
     /**
+     * Default accept header.
+     * @return
+     */
+    boolean defaultAcceptHeader() default true;
+
+    /**
+     * Handle cookies.
+     * @return
+     */
+    boolean handleCookies() default false;
+
+    /**
      * Content type.
      * @return
      */
@@ -91,12 +103,17 @@ public @interface HttpClientConfig {
      */
     int pollingInterval() default 500;
 
-
     /**
      * Error handling strategy.
      * @return
      */
     ErrorHandlingStrategy errorStrategy() default ErrorHandlingStrategy.PROPAGATE;
+
+    /**
+     * Error handler.
+     * @return
+     */
+    String errorHandler() default "";
 
     /**
      * Client interceptors.

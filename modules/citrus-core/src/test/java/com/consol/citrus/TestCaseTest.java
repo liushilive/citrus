@@ -16,9 +16,10 @@
 
 package com.consol.citrus;
 
-import com.consol.citrus.actions.AbstractTestAction;
-import com.consol.citrus.actions.EchoAction;
+import com.consol.citrus.actions.*;
+import com.consol.citrus.container.Async;
 import com.consol.citrus.context.TestContext;
+import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.exceptions.TestCaseFailedException;
 import com.consol.citrus.functions.core.CurrentDateFunction;
 import com.consol.citrus.testng.AbstractTestNGUnitTest;
@@ -39,6 +40,66 @@ public class TestCaseTest extends AbstractTestNGUnitTest {
         
         testcase.addTestAction(new EchoAction());
         
+        testcase.execute(context);
+    }
+
+    @Test
+    public void testWaitForFinish() {
+        TestCase testcase = new TestCase();
+        testcase.setName("MyTestCase");
+
+        testcase.addTestAction(new EchoAction());
+        testcase.addTestAction(new AbstractAsyncTestAction() {
+            @Override
+            public void doExecuteAsync(TestContext context) {
+                try {
+                    Thread.sleep(500L);
+                } catch (InterruptedException e) {
+                    throw new CitrusRuntimeException(e);
+                }
+            }
+        });
+
+        testcase.execute(context);
+    }
+
+    @Test(expectedExceptions = TestCaseFailedException.class, expectedExceptionsMessageRegExp = "Failed to wait for nested test actions to finish properly")
+    public void testWaitForFinishTimeout() {
+        TestCase testcase = new TestCase();
+        testcase.setTimeout(500L);
+        testcase.setName("MyTestCase");
+
+        testcase.addTestAction(new EchoAction());
+        testcase.addTestAction(new AbstractAsyncTestAction() {
+            @Override
+            public void doExecuteAsync(TestContext context) {
+                try {
+                    Thread.sleep(1000L);
+                } catch (InterruptedException e) {
+                    throw new CitrusRuntimeException(e);
+                }
+            }
+        });
+
+        testcase.execute(context);
+    }
+
+    @Test
+    public void testWaitForFinishAsync() {
+        TestCase testcase = new TestCase();
+        testcase.setName("MyTestCase");
+
+        testcase.addTestAction(new Async().addTestAction(new AbstractAsyncTestAction() {
+            @Override
+            public void doExecuteAsync(TestContext context) {
+                try {
+                    Thread.sleep(500L);
+                } catch (InterruptedException e) {
+                    throw new CitrusRuntimeException(e);
+                }
+            }
+        }));
+
         testcase.execute(context);
     }
     
@@ -86,6 +147,38 @@ public class TestCaseTest extends AbstractTestNGUnitTest {
             }
         });
         
+        testcase.execute(context);
+    }
+
+    @Test(expectedExceptions = {TestCaseFailedException.class}, expectedExceptionsMessageRegExp = "This failed in forked action")
+    public void testExceptionInContext() {
+        TestCase testcase = new TestCase();
+        testcase.setName("MyTestCase");
+
+        testcase.addTestAction(new AbstractTestAction() {
+            @Override
+            public void doExecute(TestContext context) {
+                context.addException(new CitrusRuntimeException("This failed in forked action"));
+            }
+        });
+
+        testcase.addTestAction(new EchoAction().setMessage("Everything is fine!"));
+
+        testcase.execute(context);
+    }
+
+    @Test(expectedExceptions = {TestCaseFailedException.class})
+    public void testExceptionInContextInFinish() {
+        TestCase testcase = new TestCase();
+        testcase.setName("MyTestCase");
+
+        testcase.addTestAction(new AbstractTestAction() {
+            @Override
+            public void doExecute(TestContext context) {
+                context.addException(new CitrusRuntimeException("This failed in forked action"));
+            }
+        });
+
         testcase.execute(context);
     }
     

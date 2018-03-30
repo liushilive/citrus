@@ -16,8 +16,7 @@
 
 package com.consol.citrus.testng;
 
-import com.consol.citrus.Citrus;
-import com.consol.citrus.TestCase;
+import com.consol.citrus.*;
 import com.consol.citrus.annotations.CitrusResource;
 import com.consol.citrus.annotations.CitrusXmlTest;
 import com.consol.citrus.common.TestLoader;
@@ -25,6 +24,7 @@ import com.consol.citrus.common.XmlTestLoader;
 import com.consol.citrus.config.CitrusSpringConfig;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
+import com.consol.citrus.exceptions.TestCaseFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -37,6 +37,7 @@ import org.testng.*;
 import org.testng.annotations.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -61,7 +62,6 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
     @Override
     public void run(IHookCallBack callBack, ITestResult testResult) {
         Method method = testResult.getMethod().getConstructorOrMethod().getMethod();
-
         if (method != null && method.getAnnotation(CitrusXmlTest.class) != null) {
             List<TestLoader> methodTestLoaders = createTestLoadersForMethod(method);
 
@@ -69,9 +69,6 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
                 try {
                     run(testResult, method, methodTestLoaders.get(testResult.getMethod().getCurrentInvocationCount() % methodTestLoaders.size()),
                             testResult.getMethod().getCurrentInvocationCount());
-                } catch (RuntimeException e) {
-                    testResult.setThrowable(e);
-                    testResult.setStatus(ITestResult.FAILURE);
                 } catch (Exception e) {
                     testResult.setThrowable(e);
                     testResult.setStatus(ITestResult.FAILURE);
@@ -79,6 +76,14 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
             }
 
             super.run(new FakeExecutionCallBack(callBack.getParameters()), testResult);
+
+            if (testResult.getThrowable() != null) {
+                if (testResult.getThrowable() instanceof RuntimeException) {
+                    throw (RuntimeException) testResult.getThrowable();
+                } else {
+                    throw new CitrusRuntimeException(testResult.getThrowable());
+                }
+            }
         } else {
             super.run(callBack, testResult);
         }
@@ -98,10 +103,32 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
 
         TestContext ctx = prepareTestContext(citrus.createTestContext());
         TestCase testCase = testLoader.load();
+        testCase.setGroups(testResult.getMethod().getGroups());
 
-        resolveParameter(testResult, method, testCase, ctx, invocationCount);
+        invokeTestMethod(testResult, method, testCase, ctx, invocationCount);
+    }
 
-        citrus.run(testCase, ctx);
+    /**
+     * Invokes test method based on designer or runner environment.
+     * @param testResult
+     * @param method
+     * @param testCase
+     * @param context
+     * @param invocationCount
+     */
+    protected void invokeTestMethod(ITestResult testResult, Method method, TestCase testCase, TestContext context, int invocationCount) {
+        try {
+            ReflectionUtils.invokeMethod(method, this,
+                    resolveParameter(testResult, method, testCase, context, invocationCount));
+
+            citrus.run(testCase, context);
+        } catch (TestCaseFailedException e) {
+            throw e;
+        } catch (Exception | AssertionError e) {
+            testCase.setTestResult(TestResult.failed(testCase.getName(), e));
+            testCase.finish(context);
+            throw new TestCaseFailedException(e);
+        }
     }
 
     /**
@@ -115,13 +142,27 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
      * @param invocationCount
      * @return
      */
-    protected Object[] resolveParameter(ITestResult testResult, Method method, TestCase testCase, TestContext context, int invocationCount) {
+    protected Object[] resolveParameter(ITestResult testResult, final Method method, TestCase testCase, TestContext context, int invocationCount) {
         Object[] dataProviderParams = null;
         if (method.getAnnotation(Test.class) != null &&
                 StringUtils.hasText(method.getAnnotation(Test.class).dataProvider())) {
-            Method dataProvider = ReflectionUtils.findMethod(method.getDeclaringClass(), method.getAnnotation(Test.class).dataProvider());
-            Object[][] parameters = (Object[][]) ReflectionUtils.invokeMethod(dataProvider, this,
-                    resolveParameter(testResult, dataProvider, testCase, context, -1));
+            final Method[] dataProvider = new Method[1];
+            ReflectionUtils.doWithMethods(method.getDeclaringClass(), current -> {
+                if (StringUtils.hasText(current.getAnnotation(DataProvider.class).name()) &&
+                        current.getAnnotation(DataProvider.class).name().equals(method.getAnnotation(Test.class).dataProvider())) {
+                    dataProvider[0] = current;
+                } else if (current.getName().equals(method.getAnnotation(Test.class).dataProvider())) {
+                    dataProvider[0] = current;
+                }
+
+            }, toFilter -> toFilter.getAnnotation(DataProvider.class) != null);
+
+            if (dataProvider[0] == null) {
+                throw new CitrusRuntimeException("Unable to find data provider: " + method.getAnnotation(Test.class).dataProvider());
+            }
+
+            Object[][] parameters = (Object[][]) ReflectionUtils.invokeMethod(dataProvider[0], this,
+                    resolveParameter(testResult, dataProvider[0], testCase, context, -1));
             if (parameters != null) {
                 dataProviderParams = parameters[invocationCount % parameters.length];
                 injectTestParameters(method, testCase, dataProviderParams);
@@ -136,7 +177,6 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
             for (Annotation annotation : parameterAnnotations) {
                 if (annotation instanceof CitrusResource) {
                     values[i] = resolveAnnotatedResource(testResult, parameterType, context);
-                    continue;
                 }
             }
 
@@ -200,22 +240,25 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
                 methodTestLoaders.add(createTestLoader(testName, testPackage));
             }
 
-            String[] testPackages = citrusTestAnnotation.packageScan();
-            for (String packageName : testPackages) {
+            String[] packagesToScan = citrusTestAnnotation.packageScan();
+            for (String packageScan : packagesToScan) {
                 try {
                     for (String fileNamePattern : Citrus.getXmlTestFileNamePattern()) {
-                        Resource[] fileResources = new PathMatchingResourcePatternResolver().getResources(packageName.replace('.', File.separatorChar) + fileNamePattern);
+                        Resource[] fileResources = new PathMatchingResourcePatternResolver().getResources(packageScan.replace('.', File.separatorChar) + fileNamePattern);
                         for (Resource fileResource : fileResources) {
                             String filePath = fileResource.getFile().getParentFile().getCanonicalPath();
-                            filePath = filePath.substring(filePath.indexOf(packageName.replace('.', File.separatorChar)));
+
+                            if (packageScan.startsWith("file:")) {
+                                filePath = "file:" + filePath;
+                            }
+                            
+                            filePath = filePath.substring(filePath.indexOf(packageScan.replace('.', File.separatorChar)));
 
                             methodTestLoaders.add(createTestLoader(fileResource.getFilename().substring(0, fileResource.getFilename().length() - ".xml".length()), filePath));
                         }
                     }
-                } catch (RuntimeException e) {
-                    throw new CitrusRuntimeException("Unable to locate file resources for test package '" + packageName + "'", e);
-                } catch (Exception e) {
-                    throw new CitrusRuntimeException("Unable to locate file resources for test package '" + packageName + "'", e);
+                } catch (RuntimeException | IOException e) {
+                    throw new CitrusRuntimeException("Unable to locate file resources for test package '" + packageScan + "'", e);
                 }
             }
         }
@@ -244,17 +287,31 @@ public abstract class AbstractTestNGCitrusTest extends AbstractTestNGSpringConte
     @AfterSuite(alwaysRun = true)
     public void afterSuite(ITestContext testContext) {
         if (citrus != null) {
-            citrus.afterSuite(testContext.getSuite().getName());
+            citrus.afterSuite(testContext.getSuite().getName(), testContext.getIncludedGroups());
         }
     }
 
     /**
      * Executes the test case.
+     * @deprecated in favor of using {@link com.consol.citrus.annotations.CitrusXmlTest} or {@link com.consol.citrus.annotations.CitrusTest} annotations on test methods.
      */
+    @Deprecated
     protected void executeTest() {
-        ITestNGMethod testNGMethod = Reporter.getCurrentTestResult().getMethod();
-        Method method = testNGMethod.getConstructorOrMethod().getMethod();
-        run(Reporter.getCurrentTestResult(), method, createTestLoader(this.getClass().getSimpleName(), this.getClass().getPackage().getName()), testNGMethod.getCurrentInvocationCount());
+        if (citrus == null) {
+            citrus = Citrus.newInstance(applicationContext);
+        }
+
+        ITestResult result = Reporter.getCurrentTestResult();
+        ITestNGMethod testNGMethod = result.getMethod();
+
+        TestContext context = prepareTestContext(citrus.createTestContext());
+        TestLoader testLoader = createTestLoader(this.getClass().getSimpleName(), this.getClass().getPackage().getName());
+        TestCase testCase = testLoader.load();
+        testCase.setGroups(testNGMethod.getGroups());
+
+        resolveParameter(result, testNGMethod.getConstructorOrMethod().getMethod(), testCase, context, testNGMethod.getCurrentInvocationCount());
+
+        citrus.run(testCase, context);
     }
 
     /**

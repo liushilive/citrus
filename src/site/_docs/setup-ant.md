@@ -12,7 +12,7 @@ to have access to the Citrus binaries and sources.
 
 You need following software on your computer, in order to use the Citrus Framework:
 
-- **Java 7 or higher**
+- **Java 8 or higher**
   Installed JDK plus JAVA_HOME environment variable set up and pointing to your Java installation directory
 - **Java IDE**
   A Java IDE will help you manage your Citrus project, create and execute test cases. Just use the Java IDE that you are 
@@ -20,6 +20,8 @@ You need following software on your computer, in order to use the Citrus Framewo
 - **Ant 1.8 or higher**
   Citrus tests will be executed with the [Apache Ant](http://ant.apache.org/) build tool. But it is not required to use Ant only. 
   You can also run tests via [Apache Maven](http://maven.apache.org) for example.
+  
+### ANT project 
   
 So now lets start to set up a new Citrus Java project. In contrast to a Maven generated project we have to create our project 
 structure ourself when using Ant. A good starting point is the samples folder coming with the Citrus release distribution. 

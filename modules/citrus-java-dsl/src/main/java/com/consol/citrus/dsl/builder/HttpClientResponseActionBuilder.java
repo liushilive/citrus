@@ -21,8 +21,13 @@ import com.consol.citrus.actions.ReceiveMessageAction;
 import com.consol.citrus.dsl.actions.DelegatingTestAction;
 import com.consol.citrus.endpoint.Endpoint;
 import com.consol.citrus.http.message.HttpMessage;
+import com.consol.citrus.http.message.HttpMessageContentBuilder;
+import com.consol.citrus.message.Message;
 import com.consol.citrus.message.MessageType;
+import com.consol.citrus.validation.builder.StaticMessageContentBuilder;
 import org.springframework.http.HttpStatus;
+
+import javax.servlet.http.Cookie;
 
 /**
  * @author Christoph Deppisch
@@ -44,6 +49,7 @@ public class HttpClientResponseActionBuilder extends ReceiveMessageBuilder<Recei
         getAction().setEndpoint(httpClient);
         message(httpMessage);
         messageType(MessageType.XML);
+        headerNameIgnoreCase(true);
     }
 
     /**
@@ -57,11 +63,18 @@ public class HttpClientResponseActionBuilder extends ReceiveMessageBuilder<Recei
         getAction().setEndpointUri(httpClientUri);
         message(httpMessage);
         messageType(MessageType.XML);
+        headerNameIgnoreCase(true);
     }
 
     @Override
     protected void setPayload(String payload) {
         httpMessage.setPayload(payload);
+    }
+
+    @Override
+    public HttpClientResponseActionBuilder name(String name) {
+        httpMessage.setName(name);
+        return super.name(name);
     }
 
     /**
@@ -111,6 +124,34 @@ public class HttpClientResponseActionBuilder extends ReceiveMessageBuilder<Recei
      */
     public HttpClientResponseActionBuilder contentType(String contentType) {
         httpMessage.contentType(contentType);
+        return this;
+    }
+
+    /**
+     * Expects cookie on response via "Set-Cookie" header.
+     * @param cookie
+     * @return
+     */
+    public HttpClientResponseActionBuilder cookie(Cookie cookie) {
+        httpMessage.cookie(cookie);
+        return this;
+    }
+
+    @Override
+    public HttpClientResponseActionBuilder message(Message message) {
+        if (message instanceof HttpMessage) {
+            if (this.httpMessage.getStatusCode() != null) {
+                ((HttpMessage) message).status(this.httpMessage.getStatusCode());
+            }
+
+            this.httpMessage = (HttpMessage) message;
+        } else {
+            this.httpMessage = new HttpMessage(message);
+        }
+
+        StaticMessageContentBuilder staticMessageContentBuilder = StaticMessageContentBuilder.withMessage(httpMessage);
+        staticMessageContentBuilder.setMessageHeaders(httpMessage.getHeaders());
+        getAction().setMessageBuilder(new HttpMessageContentBuilder(httpMessage, staticMessageContentBuilder));
         return this;
     }
 }

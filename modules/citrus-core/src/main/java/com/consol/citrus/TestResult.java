@@ -29,7 +29,7 @@ import java.util.*;
 public final class TestResult {
 
     /** Possible test results */
-    private static enum RESULT {SUCCESS, FAILURE, SKIP};
+    private enum RESULT {SUCCESS, FAILURE, SKIP}
 
     /** Actual result */
     private RESULT result;
@@ -42,6 +42,9 @@ public final class TestResult {
     
     /** Failure cause */
     private Throwable cause;
+
+    /** Error message */
+    private String errorMessage;
 
     /**
      * Create new test result for successful execution.
@@ -92,6 +95,16 @@ public final class TestResult {
     }
 
     /**
+     * Create new test result for failed execution.
+     * @param name
+     * @param errorMessage
+     * @return
+     */
+    public static TestResult failed(String name, String errorMessage) {
+        return new TestResult(name, RESULT.FAILURE, null, errorMessage);
+    }
+
+    /**
      * Create new test result with parameters for failed execution.
      * @param name
      * @param cause
@@ -108,7 +121,7 @@ public final class TestResult {
      * @param result
      */
     private TestResult(String name, RESULT result) {
-        this(name, result, new HashMap<String, Object>());
+        this(name, result, new HashMap<>());
     }
     
     /**
@@ -128,7 +141,27 @@ public final class TestResult {
      * @param cause
      */
     private TestResult(String name, RESULT result, Throwable cause) {
-        this(name, result, cause, new HashMap<String, Object>());
+        this(name, result, cause, new HashMap<>());
+    }
+
+    /**
+     * Constructor using fields.
+     * @param name
+     * @param result
+     * @param errorMessage
+     */
+    private TestResult(String name, RESULT result, Throwable cause, String errorMessage) {
+        this(name, result, cause, errorMessage, new HashMap<>());
+    }
+
+    /**
+     * Constructor using fields.
+     * @param name
+     * @param result
+     * @param parameters
+     */
+    private TestResult(String name, RESULT result, Throwable cause, Map<String, Object> parameters) {
+        this(name, result, cause, Optional.ofNullable(cause).map(Throwable::getMessage).orElse(""), parameters);
     }
 
     /**
@@ -137,11 +170,12 @@ public final class TestResult {
      * @param result
      * @param cause
      */
-    private TestResult(String name, RESULT result, Throwable cause, Map<String, Object> parameters) {
+    private TestResult(String name, RESULT result, Throwable cause, String errorMessage, Map<String, Object> parameters) {
         this.testName = name;
         this.result = result;
         this.cause = cause;
         this.parameters = parameters;
+        this.errorMessage = errorMessage;
     }
 
     @Override
@@ -177,23 +211,11 @@ public final class TestResult {
     }
 
     /**
-     * Provide failure cause message for test results.
-     * @return
-     */
-    public String getFailureCause() {
-        if (cause != null && StringUtils.hasText(cause.getLocalizedMessage())) {
-            return " FAILURE: Caused by: " + cause.getClass().getSimpleName() + ": " +  cause.getLocalizedMessage();
-        } else {
-            return " FAILURE: Caused by: Unknown error";
-        }
-    }
-
-    /**
      * Checks successful result state.
      * @return
      */
     public boolean isSuccess() {
-        return !isSkipped() && result.equals(RESULT.SUCCESS);
+        return !isSkipped() && result != null && result.equals(RESULT.SUCCESS);
     }
 
     /**
@@ -201,7 +223,7 @@ public final class TestResult {
      * @return
      */
     public boolean isFailed() {
-        return !isSkipped() && result.equals(RESULT.FAILURE);
+        return !isSkipped() && result != null && result.equals(RESULT.FAILURE);
     }
 
     /**
@@ -209,7 +231,7 @@ public final class TestResult {
      * @return
      */
     public boolean isSkipped() {
-        return result.equals(RESULT.SKIP);
+        return result != null && result.equals(RESULT.SKIP);
     }
 
     /**
@@ -274,5 +296,23 @@ public final class TestResult {
      */
     public Map<String, Object> getParameters() {
         return parameters;
+    }
+
+    /**
+     * Gets the errorMessage.
+     *
+     * @return
+     */
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    /**
+     * Sets the errorMessage.
+     *
+     * @param errorMessage
+     */
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 }

@@ -32,13 +32,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2.5
  */
 public class Timer extends AbstractActionContainer implements StopTimer {
-    /**
-     * Logger
-     */
+    /** Logger */
     private static Logger log = LoggerFactory.getLogger(Timer.class);
 
     private final static AtomicInteger nextSerialNumber = new AtomicInteger(0);
-
 
     protected static final String INDEX_SUFFIX = "-index";
 
@@ -58,7 +55,6 @@ public class Timer extends AbstractActionContainer implements StopTimer {
 
     @Override
     public void doExecute(final TestContext context) {
-
         if (fork) {
             SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
             taskExecutor.execute(new Runnable() {
@@ -87,7 +83,7 @@ public class Timer extends AbstractActionContainer implements StopTimer {
                     log.debug(String.format("Timer event fired #%s - executing nested actions", indexCount));
 
                     for (TestAction action : actions) {
-                        setLastExecutedAction(action);
+                        setActiveAction(action);
                         action.execute(context);
                     }
                     if (indexCount >= repeatCount) {
@@ -111,6 +107,10 @@ public class Timer extends AbstractActionContainer implements StopTimer {
                 }
                 log.error(String.format("Timer stopped as a result of nested action error (%s)", e.getMessage()));
                 stopTimer();
+
+                if (fork) {
+                    context.addException(timerException);
+                }
             }
         };
         timer.scheduleAtFixedRate(timerTask, delay, interval);
@@ -129,7 +129,7 @@ public class Timer extends AbstractActionContainer implements StopTimer {
     }
 
     public String getTimerId() {
-        if(StringUtils.isEmpty(timerId)) {
+        if (StringUtils.isEmpty(timerId)) {
             timerId = "citrus-timer-" + serialNumber();
         }
         return timerId;

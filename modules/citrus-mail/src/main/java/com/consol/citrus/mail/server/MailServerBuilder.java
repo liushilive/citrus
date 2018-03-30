@@ -63,7 +63,7 @@ public class MailServerBuilder extends AbstractEndpointBuilder<MailServer> {
      * @return
      */
     public MailServerBuilder marshaller(MailMarshaller marshaller) {
-        endpoint.setMailMarshaller(marshaller);
+        endpoint.setMarshaller(marshaller);
         return this;
     }
 
@@ -124,6 +124,16 @@ public class MailServerBuilder extends AbstractEndpointBuilder<MailServer> {
      */
     public MailServerBuilder endpointAdapter(EndpointAdapter endpointAdapter) {
         endpoint.setEndpointAdapter(endpointAdapter);
+        return this;
+    }
+
+    /**
+     * Sets the debug logging enabled flag.
+     * @param enabled
+     * @return
+     */
+    public MailServerBuilder debugLogging(boolean enabled) {
+        endpoint.setDebugLogging(enabled);
         return this;
     }
 }

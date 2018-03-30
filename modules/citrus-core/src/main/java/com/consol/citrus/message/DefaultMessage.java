@@ -18,8 +18,6 @@ package com.consol.citrus.message;
 
 import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.util.TypeConversionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -40,13 +38,13 @@ public class DefaultMessage implements Message {
     private Object payload;
 
     /** Optional list of header data */
-    private List<String> headerData = new ArrayList<String>();
+    private final List<String> headerData = new ArrayList<>();
 
     /** Message headers */
-    private final Map<String, Object> headers;
+    private final Map<String, Object> headers = new LinkedHashMap<>();
 
-    /** Logger */
-    private static Logger log = LoggerFactory.getLogger(DefaultMessage.class);
+    /** The message name for internal use */
+    private String name;
 
     /**
      * Empty constructor initializing with empty message payload.
@@ -60,13 +58,10 @@ public class DefaultMessage implements Message {
      * @param message
      */
     public DefaultMessage(Message message) {
-        this(message.getPayload());
+        this(message.getPayload(), message.getHeaders());
 
-        this.headers.putAll(message.getHeaders());
-
-        for (String data : message.getHeaderData()) {
-            addHeaderData(data);
-        }
+        this.setName(message.getName());
+        this.headerData.addAll(message.getHeaderData());
     }
 
     /**
@@ -74,7 +69,7 @@ public class DefaultMessage implements Message {
      * @param payload
      */
     public DefaultMessage(Object payload) {
-        this(payload, new LinkedHashMap<String, Object>());
+        this(payload, new LinkedHashMap<>());
     }
 
     /**
@@ -84,15 +79,15 @@ public class DefaultMessage implements Message {
      */
     public DefaultMessage(Object payload, Map<String, Object> headers) {
         this.payload = payload;
-        this.headers = headers;
+        this.headers.putAll(headers);
 
-        this.headers.put(MessageHeaders.ID, UUID.randomUUID().toString());
-        this.headers.put(MessageHeaders.TIMESTAMP, System.currentTimeMillis());
+        this.headers.putIfAbsent(MessageHeaders.ID, UUID.randomUUID().toString());
+        this.headers.putIfAbsent(MessageHeaders.TIMESTAMP, System.currentTimeMillis());
     }
 
     @Override
     public String getId() {
-        return headers.get(MessageHeaders.ID).toString();
+        return getHeader(MessageHeaders.ID).toString();
     }
 
     /**
@@ -100,15 +95,15 @@ public class DefaultMessage implements Message {
      * @return
      */
     public Long getTimestamp() {
-        return (Long) headers.get(MessageHeaders.TIMESTAMP);
+        return (Long) getHeader(MessageHeaders.TIMESTAMP);
     }
 
     @Override
     public String toString() {
         if (CollectionUtils.isEmpty(headerData)) {
-            return String.format("%s [payload: %s][headers: %s]", getClass().getSimpleName().toUpperCase(), getPayload(String.class).trim(), headers);
+            return getClass().getSimpleName().toUpperCase() + " [id: " + getId() + ", payload: " + getPayload(String.class).trim() + "][headers: " + Collections.unmodifiableMap(headers) + "]";
         } else {
-            return String.format("%s [payload: %s][headers: %s][header-data: %s]", getClass().getSimpleName().toUpperCase(), getPayload(String.class).trim(), headers, headerData);
+            return getClass().getSimpleName().toUpperCase() + " [id: " + getId() + ", payload: " + getPayload(String.class).trim() + "][headers: " + Collections.unmodifiableMap(headers) + "][header-data: " + Collections.unmodifiableList(headerData) + "]";
         }
     }
 
@@ -165,5 +160,15 @@ public class DefaultMessage implements Message {
     @Override
     public Map<String, Object> getHeaders() {
         return headers;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 }

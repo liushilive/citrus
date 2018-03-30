@@ -17,8 +17,10 @@
 package com.consol.citrus.config.xml;
 
 import com.consol.citrus.message.MessageHeaderType;
+import com.consol.citrus.util.FileUtils;
 import com.consol.citrus.validation.builder.AbstractMessageContentBuilder;
 import com.consol.citrus.validation.builder.PayloadTemplateMessageBuilder;
+import com.consol.citrus.validation.context.ValidationContext;
 import com.consol.citrus.validation.json.*;
 import com.consol.citrus.validation.xml.XpathMessageConstructionInterceptor;
 import com.consol.citrus.validation.script.GroovyScriptMessageBuilder;
@@ -56,11 +58,15 @@ public abstract class AbstractMessageActionParser implements BeanDefinitionParse
             }
         }
 
-        if (messageBuilder != null) {
-            return messageBuilder;
-        } else {
-            return new PayloadTemplateMessageBuilder();
+        if (messageBuilder == null) {
+            messageBuilder = new PayloadTemplateMessageBuilder();
         }
+
+        if (messageElement != null && messageElement.hasAttribute("name")) {
+            messageBuilder.setMessageName(messageElement.getAttribute("name"));
+        }
+
+        return messageBuilder;
     }
     
     /**
@@ -82,13 +88,20 @@ public abstract class AbstractMessageActionParser implements BeanDefinitionParse
             } else {
                 throw new BeanCreationException("Unsupported message builder type: '" + builderType + "'");
             }
-            
+
             String scriptResourcePath = builderElement.getAttribute("file");
             if (StringUtils.hasText(scriptResourcePath)) {
                 scriptMessageBuilder.setScriptResourcePath(scriptResourcePath);
+                if (builderElement.hasAttribute("charset")) {
+                    scriptMessageBuilder.setScriptResourceCharset(builderElement.getAttribute("charset"));
+                }
             } else {
                 scriptMessageBuilder.setScriptData(DomUtils.getTextValue(builderElement).trim());
             }
+        }
+
+        if (scriptMessageBuilder != null && messageElement.hasAttribute("name")) {
+            scriptMessageBuilder.setMessageName(messageElement.getAttribute("name"));
         }
         
         return scriptMessageBuilder;
@@ -113,6 +126,9 @@ public abstract class AbstractMessageActionParser implements BeanDefinitionParse
         if (xmlResourceElement != null) {
             messageBuilder = new PayloadTemplateMessageBuilder();
             messageBuilder.setPayloadResourcePath(xmlResourceElement.getAttribute("file"));
+            if (xmlResourceElement.hasAttribute("charset")) {
+                messageBuilder.setPayloadResourceCharset(xmlResourceElement.getAttribute("charset"));
+            }
         }
         
         if (messageBuilder != null) {
@@ -156,6 +172,10 @@ public abstract class AbstractMessageActionParser implements BeanDefinitionParse
         if (payloadElement != null) {
             messageBuilder = new PayloadTemplateMessageBuilder();
 
+            if (messageElement.hasAttribute("name")) {
+                messageBuilder.setMessageName(messageElement.getAttribute("name"));
+            }
+
             List<Element> payload = DomUtils.getChildElements(payloadElement);
             if (CollectionUtils.isEmpty(payload)) {
                 messageBuilder.setPayloadData("");
@@ -173,10 +193,11 @@ public abstract class AbstractMessageActionParser implements BeanDefinitionParse
      * 
      * @param actionElement the action DOM element.
      * @param messageBuilder the message content builder.
+     * @param validationContexts list of validation contexts.
      */
-    protected void parseHeaderElements(Element actionElement, AbstractMessageContentBuilder messageBuilder) {
+    protected void parseHeaderElements(Element actionElement, AbstractMessageContentBuilder messageBuilder, List<ValidationContext> validationContexts) {
         Element headerElement = DomUtils.getChildElementByTagName(actionElement, "header");
-        Map<String, Object> messageHeaders = new HashMap<String, Object>();
+        Map<String, Object> messageHeaders = new LinkedHashMap<>();
 
         if (headerElement != null) {
             List<?> elements = DomUtils.getChildElementsByTagName(headerElement, "element");
@@ -201,10 +222,25 @@ public abstract class AbstractMessageActionParser implements BeanDefinitionParse
 
             List<Element> headerResourceElements = DomUtils.getChildElementsByTagName(headerElement, "resource");
             for (Element headerResourceElement : headerResourceElements) {
-                messageBuilder.getHeaderResources().add(headerResourceElement.getAttribute("file"));
+                String charset = headerResourceElement.getAttribute("charset");
+                messageBuilder.getHeaderResources().add(headerResourceElement.getAttribute("file") + (StringUtils.hasText(charset) ? FileUtils.FILE_PATH_CHARSET_PARAMETER + charset : ""));
             }
-            
+
+            // parse fragment with xs-any element
+            List<Element> headerFragmentElements = DomUtils.getChildElementsByTagName(headerElement, "fragment");
+            for (Element headerFragmentElement : headerFragmentElements) {
+                List<Element> fragment = DomUtils.getChildElements(headerFragmentElement);
+                if (!CollectionUtils.isEmpty(fragment)) {
+                    messageBuilder.getHeaderData().add(PayloadElementParser.parseMessagePayload(fragment.get(0)));
+                }
+            }
+
             messageBuilder.setMessageHeaders(messageHeaders);
+
+            if (headerElement.hasAttribute("ignore-case")) {
+                boolean ignoreCase = Boolean.valueOf(headerElement.getAttribute("ignore-case"));
+                validationContexts.forEach(context -> context.setHeaderNameIgnoreCase(ignoreCase));
+            }
         }
     }
     

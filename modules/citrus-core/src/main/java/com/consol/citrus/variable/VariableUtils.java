@@ -20,6 +20,7 @@ import com.consol.citrus.Citrus;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.exceptions.NoSuchVariableException;
+import org.springframework.util.StringUtils;
 
 import javax.script.*;
 
@@ -56,6 +57,32 @@ public final class VariableUtils {
             throw new CitrusRuntimeException("Failed to evaluate " + scriptEngine + " script", e);
         }
     }
+
+    /**
+     * Cut off single quotes prefix and suffix.
+     * @param variable
+     * @return
+     */
+    public static String cutOffSingleQuotes(String variable) {
+        if (StringUtils.hasText(variable) && variable.length() > 1 && variable.charAt(0) == '\'' && variable.charAt(variable.length() - 1) == '\'') {
+            return variable.substring(1, variable.length() - 1);
+        }
+
+        return variable;
+    }
+
+    /**
+     * Cut off double quotes prefix and suffix.
+     * @param variable
+     * @return
+     */
+    public static String cutOffDoubleQuotes(String variable) {
+        if (StringUtils.hasText(variable) && variable.length() > 1 && variable.charAt(0) == '"' && variable.charAt(variable.length() - 1) == '"') {
+            return variable.substring(1, variable.length() - 1);
+        }
+
+        return variable;
+    }
     
     /**
      * Cut off variables prefix
@@ -65,6 +92,19 @@ public final class VariableUtils {
     public static String cutOffVariablesPrefix(String variable) {
         if (variable.startsWith(Citrus.VARIABLE_PREFIX) && variable.endsWith(Citrus.VARIABLE_SUFFIX)) {
             return variable.substring(Citrus.VARIABLE_PREFIX.length(), variable.length() - Citrus.VARIABLE_SUFFIX.length());
+        }
+
+        return variable;
+    }
+
+    /**
+     * Cut off variables escaping
+     * @param variable
+     * @return
+     */
+    public static String cutOffVariablesEscaping(String variable) {
+        if (variable.startsWith(Citrus.VARIABLE_ESCAPE) && variable.endsWith(Citrus.VARIABLE_ESCAPE)) {
+            return variable.substring(Citrus.VARIABLE_ESCAPE.length(), variable.length() - Citrus.VARIABLE_ESCAPE.length());
         }
 
         return variable;

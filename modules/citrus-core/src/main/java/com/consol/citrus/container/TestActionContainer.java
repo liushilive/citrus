@@ -38,7 +38,7 @@ public interface TestActionContainer extends TestAction {
      * Get the embedded test actions within this container.
      */
     List<TestAction> getActions();
-    
+
     /**
      * Get the number of embedded actions in this container.
      * @return
@@ -46,11 +46,17 @@ public interface TestActionContainer extends TestAction {
     long getActionCount();
     
     /**
+     * Adds one to many test actions to the nested action list.
+     * @param action
+     */
+    TestActionContainer addTestActions(TestAction ... action);
+    
+    /**
      * Adds a test action to the nested action list.
      * @param action
      */
     TestActionContainer addTestAction(TestAction action);
-    
+
     /**
      * Returns the index in the action chain for provided action instance.
      * @return the action index in the action list
@@ -58,16 +64,22 @@ public interface TestActionContainer extends TestAction {
     int getActionIndex(TestAction action);
     
     /**
-     * Sets the last executed action.
+     * Sets the current active action executed.
      * @param action
      */
-    void setLastExecutedAction(TestAction action);
+    void setActiveAction(TestAction action);
     
     /**
      * Get the action that was executed most recently.
      * @return
      */
-    TestAction getLastExecutedAction();
+    TestAction getActiveAction();
+
+    /**
+     * Gets all nested actions that have been executed in the container.
+     * @return
+     */
+    List<TestAction> getExecutedActions();
     
     /**
      * Get the test action with given index in list.

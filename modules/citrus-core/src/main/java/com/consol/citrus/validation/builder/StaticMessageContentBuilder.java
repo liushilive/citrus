@@ -17,10 +17,12 @@
 package com.consol.citrus.validation.builder;
 
 import com.consol.citrus.context.TestContext;
-import com.consol.citrus.message.*;
-import org.springframework.util.CollectionUtils;
+import com.consol.citrus.message.Message;
+import com.consol.citrus.message.MessageHeaders;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Message builder returning a static message every time the build mechanism is called. This
@@ -37,35 +39,13 @@ public class StaticMessageContentBuilder extends AbstractMessageContentBuilder {
     /**
      * Default constructor with static message to be built by this message builder.
      */
-    public StaticMessageContentBuilder(Message message) {
+    public StaticMessageContentBuilder(final Message message) {
         this.message = message;
+        this.setMessageName(message.getName());
     }
 
     @Override
-    public Message buildMessageContent(TestContext context, String messageType) {
-        if (getMessageHeaders().isEmpty()
-                && CollectionUtils.isEmpty(getHeaderData())
-                && CollectionUtils.isEmpty(getHeaderResources())
-                && getMessageInterceptors().isEmpty()
-                && getDataDictionary() == null) {
-            Message constructed = new DefaultMessage(message);
-            constructed.setPayload(buildMessagePayload(context, messageType));
-
-            Map<String, Object> headers = buildMessageHeaders(context);
-            for (Map.Entry<String, Object> header : headers.entrySet()) {
-                if (!header.getKey().equals(MessageHeaders.ID)) {
-                    constructed.setHeader(header.getKey(), header.getValue());
-                }
-            }
-
-            return constructed;
-        } else {
-            return super.buildMessageContent(context, messageType);
-        }
-    }
-
-    @Override
-    protected Object buildMessagePayload(TestContext context, String messageType) {
+    public Object buildMessagePayload(final TestContext context, final String messageType) {
         if (message.getPayload() instanceof String) {
             return context.replaceDynamicContentInString(message.getPayload(String.class));
         } else {
@@ -74,17 +54,28 @@ public class StaticMessageContentBuilder extends AbstractMessageContentBuilder {
     }
 
     @Override
-    protected Map<String, Object> buildMessageHeaders(TestContext context) {
-        Map<String, Object> headers = super.buildMessageHeaders(context);
-        headers.putAll(context.resolveDynamicValuesInMap(message.getHeaders()));
+    public Map<String, Object> buildMessageHeaders(final TestContext context, final String messageType) {
+        final Map<String, Object> headers = super.buildMessageHeaders(context, messageType);
+        headers.putAll(context.resolveDynamicValuesInMap(message.getHeaders().entrySet()
+                                    .stream()
+                                    .filter(entry -> !entry.getKey().equals(MessageHeaders.ID) && !entry.getKey().equals(MessageHeaders.TIMESTAMP))
+                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))));
 
         return headers;
+    }
+
+    @Override
+    public List<String> buildMessageHeaderData(final TestContext context) {
+        final List<String> headerData = super.buildMessageHeaderData(context);
+        headerData.addAll(context.resolveDynamicValuesInList(message.getHeaderData()));
+
+        return headerData;
     }
 
     /**
      * Default constructor with static message to be built by this message builder.
      */
-    public static StaticMessageContentBuilder withMessage(Message message) {
+    public static StaticMessageContentBuilder withMessage(final Message message) {
         return new StaticMessageContentBuilder(message);
     }
 

@@ -1,15 +1,551 @@
 - version: ${project.version}
+  date: 2018-03-12
   tag: latest
   issues: https://github.com/christophd/citrus/issues/
   stories: https://github.com/christophd/citrus/issues/
   changes:
+  - title: JsonPath array result type
+    id: 327
+    type: Fix
+    author: christophd
+  - title: Add JDBC db server support
+    id: 322
+    type: Add
+    author: christophd
+  - title: Send Http request with encoded URI
+    id: 344
+    type: Update
+    author: christophd
+  - title: Update dependency versions
+    id: 332
+    type: Update
+    author: christophd
+  - title: Add function to resolve system properties
+    id: 343
+    type: Add
+    author: christophd
+  - title: AntPath matching Hamcrest matcher
+    id: 334
+    type: Update
+    author: christophd
+  - title: URL en/decode function
+    id: 330
+    type: Add
+    author: christophd
+  - title: Missing global namespace support in send message XPath evaluation
+    id: 331
+    type: Fix
+    author: christophd
+  - title: Async test action container
+    id: 329
+    type: Add
+    author: christophd
+  - title: SOAP server Response with MTOM attachment does not work
+    id: 328
+    type: Fix
+    author: christophd
+
+- version: 2.7.3
+  date: 2018-01-15
+  tag: v2-7-3
+  issues: https://github.com/christophd/citrus/issues/
+  stories: https://github.com/christophd/citrus/issues/
+  changes:
+  - title: Validation of http headers should be case insensitive
+    id: 326
+    type: Fix
+    author: christophd
+  - title: TestRunner doFinally block position documentation
+    id: 318
+    type: Fix
+    author: christophd
+  - title: Multipart file upload
+    id: 304
+    type: Add
+    author: christophd
+  - title: JSON schema validation
+    id: 148
+    type: Add
+    author: christophd
+  - title: Http error handling thread safety
+    id: 265
+    type: Fix
+    author: christophd
+  - title: Variable in HTTP request within template not updated
+    id: 271
+    type: Fix
+    author: christophd
+  - title: TestNG Dataprovider parameters cannot be used in <variables> block
+    id: 298
+    type: Fix
+    author: christophd
+  - title: Extend Hamcrest matcher support in XML DSL
+    id: 314
+    type: Update
+    author: christophd
+  - title: How to ignore text parts in plain text validator
+    id: 313
+    type: Add
+    author: christophd
+  - title: HTTP basic authentication doesn't work
+    id: 312
+    type: Update
+    author: christophd
+  - title: Introduce global dictionary message direction
+    id: 310
+    type: Update
+    author: christophd
+  - title: Package scan with custom file name pattern
+    id: 307
+    type: Fix
+    author: christophd
+  - title: How to create a container with port mapping?
+    id: 282
+    type: Update
+    author: christophd
+  - title: Failed to convert value of type 'java.nio.HeapByteBuffer'
+    id: 284
+    type: Update
+    author: christophd
+  - title: Add JUnit 5 support
+    id: 143
+    type: Add
+    author: christophd
+  - title: ConcurrentModificationException at com.consol.citrus.message.DefaultMessage.toString()
+    id: 302
+    type: Fix
+    author: christophd
+  - title: waitFor() not working with external file system resources
+    id: 303
+    type: Fix
+    author: christophd
+  - title: Remove @Autowired from sample methods
+    id: 299
+    type: Fix
+    author: christophd
+  - title: MailMessageConverter cannot handle base64 text content
+    id: 300
+    type: Fix
+    author: christophd
+  - title: Validating XPath numbers with Hamcrest <Double> matchers fails with ClassCastException
+    id: 291
+    type: Fix
+    author: christophd
+  - title: Missing variable support in receive timeout action
+    id: 297
+    type: Fix
+    author: christophd
+  - title: Cannot use context variables for XPath in message extractor
+    id: 266
+    type: Update
+    author: christophd
+  - title: CitrusTest does not fail if assertEquals fails
+    id: 183
+    type: Update
+    author: christophd
+  - title: Reporting of test results
+    id: 287
+    type: Fix
+    author: christophd
+  - title: Provide listener for final actions
+    id: 280
+    type: Update
+    author: christophd
+  - title: Update dependency versions
+    id: 292
+    type: Update
+    author: christophd
+  - title: DelegatingTestAction should implement setName/setActor/setDescription
+    id: 272
+    type: Fix
+    author: christophd
+  - title: How to support SOAP 1.2 over JMS
+    id: 268
+    type: Fix
+    author: christophd
+  - title: Http server basic auth broken
+    id: 290
+    type: Fix
+    author: christophd
+  - title: Update validation.adoc
+    id: 288
+    type: Update
+    author: christophd
+  - title: JSONPath validator doesn't return array length correctly
+    id: 277
+    type: Fix
+    author: christophd
+  - title: Support node list translation in data dictionary
+    id: 270
+    type: Update
+    author: christophd
+  - title: fixed minor typo
+    id: 226
+    type: Update
+    author: christophd
+
+- version: 2.7.2
+  date: 2017-07-07
+  tag: v2-7-2
+  issues: https://github.com/christophd/citrus/issues/
+  stories: https://github.com/christophd/citrus/issues/
+  changes:
+  - title: Http error handling thread safety
+    id: 265
+    type: Fix
+    author: christophd
+  - title: Switch to asciidoctor refactoring
+    id: 262
+    type: Update
+    author: christophd
+  - title: Access test case variables in Camel Routes definitions
+    id: 243
+    type: Update
+    author: christophd
+  - title: charset=UTF-8 appending to Content-Type for client defined in xml
+    id: 246
+    type: Fix
+    author: christophd
+  - title: SQL Testaction does not handle transactions
+    id: 244
+    type: Update
+    author: christophd
+  - title: Update dependency versions
+    id: 263
+    type: Update
+    author: christophd
+  - title: Support environment properties
+    id: 264
+    type: Update
+    author: christophd
+  - title: Unable to retrieve X-CSRF-TOKEN using Header
+    id: 187
+    type: Fix
+    author: christophd
+  - title: Needing extractFromCookies()
+    id: 184
+    type: Update
+    author: christophd
+  - title: Http client squeezed double slashes
+    id: 231
+    type: Update
+    author: christophd
+  - title: SoapJmsMessageConverter does not create a SOAP Header
+    id: 238
+    type: Fix
+    author: christophd
+  - title: Documentation for custom servlet filters
+    id: 235
+    type: Update
+    author: christophd
+  - title: Add documentation on Cucumber injection mode
+    id: 229
+    type: Fix
+    author: christophd
+  - title: Support header child elements
+    id: 239
+    type: Update
+    author: christophd
+  - title: WsdlXsdSchema NullPointerException for valid WSDLs
+    id: 241
+    type: Fix
+    author: christophd
+  - title: How to Query ?WSDL from a WebService or HTTP Endpoint
+    id: 245
+    type: Fix
+    author: christophd
+  - title: Camel Documentation does not state citrusCamelContext as default name
+    id: 242
+    type: Update
+    author: christophd
+  - title: JMS Endpoints should allow dynamic destination name
+    id: 256
+    type: Update
+    author: christophd
+  - title: Purge JMS queue action doesn't support variable substitution
+    id: 257
+    type: Update
+    author: christophd
+  - title: HTTP client send doesn't support variable substitution for header names
+    id: 258
+    type: Update
+    author: s1hofmann
+  - title: Charset cannot be set per file for resources
+    id: 247
+    type: Update
+    author: christophd
+  - title: PlainTextValidator does not ignore whitespaces
+    id: 248
+    type: Fix
+    author: christophd
+  - title: Validation fails with null edge case
+    id: 249
+    type: Fix
+    author: christophd
+  - title: missing variable support in wait action file condition
+    id: 250
+    type: Fix
+    author: christophd
+  - title: custom web-driver is not working with citrus-selenium
+    id: 260
+    type: Fix
+    author: christophd
+  - title: Support Hamcrest matchers in header validation
+    id: 233
+    type: Update
+    author: christophd
+  - title: Handle JMS priority header
+    id: 234
+    type: Update
+    author: christophd
+  - title: Java DSL depends on citrus-selenium although declared optional
+    id: 228
+    type: Fix
+    author: christophd
+
+- version: 2.7.1
+  date: 2017-03-15
+  tag: v2-7-1
+  issues: https://github.com/christophd/citrus/issues/
+  stories: https://github.com/christophd/citrus/issues/
+  changes:
+  - title: Add ignore validation matcher
+    id: 224
+    type: Add
+    author: christophd
+  - title: Enabled mtomEnabled flag for soap send actions in Java DSL
+    id: 216
+    type: Add
+    author: chris-weber
+  - title: Line separators in plain text validation
+    id: 214
+    type: Add
+    author: christophd
+  - title: Overwriting TestContext in AbstractServer
+    id: 221
+    type: Fix
+    author: christophd
+  - title: Citrus validates text content although I did not tell it
+    id: 197
+    type: Fix
+    author: christophd
+  - title: Auto select message type for validation
+    id: 218
+    type: Add
+    author: christophd
+  - title: Cucumber Http steps
+    id: 217
+    type: Add
+    author: christophd
+  - title: Cucumber Selenium steps
+    id: 213
+    type: Add
+    author: christophd
+  - title: Cucumber Docker steps
+    id: 212
+    type: Add
+    author: christophd
+  - title: Customize default message type
+    id: 219
+    type: Add
+    author: christophd
+  - title: Http header validation skipped
+    id: 201
+    type: Fix
+    author: christophd
+  - title: Maven Archetype for Citrus
+    id: 200
+    type: Fix
+    author: christophd
+  - title: Mix XML and Java DSL test methods
+    id: 211
+    type: Fix
+    author: christophd
+  - title: Fixed parentheses in examples for matchers
+    id: 210
+    type: Fix
+    author: rhuss
+  - title: Sporadic IllegalStateException
+    id: 209
+    type: Fix
+    author: christophd
+  - title: Link to templates was written wrong
+    id: 206
+    type: Fix
+    author: christophd
+  - title: StopTime action holding static state
+    id: 204
+    type: Fix
+    author: christophd
+
+- version: 2.7
+  date: 2017-02-01
+  tag: v2-7
+  issues: https://github.com/christophd/citrus/issues/
+  stories: https://github.com/christophd/citrus/issues/
+  changes:
   - title: Update to Java 8
-      id: 133
-      type: Add
-      author: christophd
+    id: 133
+    type: Update
+    author: christophd
+  - title: Kubernetes integration
+    id: 150
+    type: Add
+    author: christophd
+  - title: Selenium support
+    id: 68
+    type: Add
+    author: christophd
+  - title: MS SQL Compatibility fix
+    id: 188
+    type: Fix
+    author: christophd
+  - title: LoggingClientInterceptor gets disabled when some interceptor is set
+    id: 180
+    type: Fix
+    author: christophd
+  - title: Enable/disable before/after suite based on env parameter
+    id: 163
+    type: Add
+    author: christophd
+  - title: WsAddressing header customization
+    id: 193
+    type: Update
+    author: christophd
+  - title: Hamcrest validation matcher with numeric values
+    id: 192
+    type: Fix
+    author: christophd
+  - title: Add JsonPathDataDictionary
+    id: 175
+    type: Add
+    author: christophd
+  - title: Add test behavior documentation
+    id: 164
+    type: Update
+    author: christophd
+  - title: MessageConstructionInterceptor causes StackOverflowError
+    id: 139
+    type: Fix
+    author: christophd
+  - title: Always give current Json element in error messages
+    id: 185
+    type: Update
+    author: christophd
+  - title: HTTP server autostart with JavaConfig fails
+    id: 179
+    type: Fix
+    author: christophd
+  - title: MailServerBuilder in Spring Java config not working
+    id: 177
+    type: Fix
+    author: christophd
+  - title: Exception when executing single Cucumber scenario
+    id: 176
+    type: Fix
+    author: christophd
+  - title: Simply copy byte array out of input stream
+    id: 172
+    type: Update
+    author: christophd
+  - title: JsonMappingDataDictionary breaks non string values
+    id: 174
+    type: Fix
+    author: christophd
+  - title: Test fails with enabled global dictionary
+    id: 166
+    type: Fix
+    author: christophd
+  - title: Explicit dictionary vs. global dictionary message overwrite
+    id: 167
+    type: Fix
+    author: christophd
+  - title: Remove deprecated API
+    id: 162
+    type: Update
+    author: christophd
+
+- version: 2.6.2
+  date: 2016-11-14
+  tag: v2-6-2
+  issues: https://github.com/christophd/citrus/issues/
+  stories: https://github.com/christophd/citrus/issues/
+  changes:
+  - title: Escape variable expression syntax
+    id: 160
+    type: Update
+    author: christophd
+  - title: Add custom servlet filters to http server
+    id: 159
+    type: Add
+    author: christophd
+  - title: Support Gzip message compression
+    id: 158
+    type: Add
+    author: christophd
+  - title: Add message wait condition
+    id: 156
+    type: Add
+    author: christophd
+  - title: Add JsonPath function
+    id: 155
+    type: Add
+    author: christophd
+  - title: Add Xpath function
+    id: 154
+    type: Add
+    author: christophd
+  - title: Improve XSD schema documentation
+    id: 147
+    type: Update
+    author: christophd
+  - title: Exception handling bug on forked actions
+    id: 146
+    type: Fix
+    author: christophd
+  - title: Gradle sample
+    id: 145
+    type: Add
+    author: christophd
+  - title: DataProvider explicit name support
+    id: 142
+    type: Fix
+    author: christophd
+  - title: Validation of JMS SoapAction not working
+    id: 141
+    type: Fix
+    author: christophd
+  - title: Support dynamic endpoints uri for https
+    id: 137
+    type: Update
+    author: christophd
+  - title: ignore Xpath only matches first element
+    id: 130
+    type: Fix
+    author: christophd
+  - title: escapeXml function still buggy
+    id: 128
+    type: Fix
+    author: christophd
+  - title: Add variables and test context support in static response adapter
+    id: 122
+    type: Update
+    author: christophd
+  - title: EscapeXml function not working with comments
+    id: 118
+    type: Fix
+    author: christophd
+  - title: Add configurable XML serializer
+    id: 113
+    type: Update
+    author: christophd
+  - title: Allow Http accept header setting
+    id: 112
+    type: Update
+    author: christophd
 
 - version: 2.6.1
-  date: 2016-09-23
+  date: 2016-10-07
   tag: v2-6-1
   issues: https://github.com/christophd/citrus/issues/
   stories: https://github.com/christophd/citrus/issues/

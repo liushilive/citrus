@@ -12,6 +12,7 @@
       <includes>
         <include>com.consol.citrus:citrus-core</include>
         <include>com.consol.citrus:citrus-jms</include>
+        <include>com.consol.citrus:citrus-jdbc</include>
         <include>com.consol.citrus:citrus-ws</include>
         <include>com.consol.citrus:citrus-http</include>
         <include>com.consol.citrus:citrus-websocket</include>
@@ -19,6 +20,8 @@
         <include>com.consol.citrus:citrus-mail</include>
         <include>com.consol.citrus:citrus-camel</include>
         <include>com.consol.citrus:citrus-docker</include>
+        <include>com.consol.citrus:citrus-kubernetes</include>
+        <include>com.consol.citrus:citrus-selenium</include>
         <include>com.consol.citrus:citrus-cucumber</include>
         <include>com.consol.citrus:citrus-zookeeper</include>
         <include>com.consol.citrus:citrus-rmi</include>
@@ -37,6 +40,8 @@
         <include>com.consol.citrus.model:citrus-model-mail</include>
         <include>com.consol.citrus.model:citrus-model-camel</include>
         <include>com.consol.citrus.model:citrus-model-docker</include>
+        <include>com.consol.citrus.model:citrus-model-kubernetes</include>
+        <include>com.consol.citrus.model:citrus-model-selenium</include>
         <include>com.consol.citrus.model:citrus-model-cucumber</include>
         <include>com.consol.citrus.model:citrus-model-zookeeper</include>
         <include>com.consol.citrus.model:citrus-model-rmi</include>
@@ -55,7 +60,7 @@
   <fileSets>
     <!-- Reference documentation -->
     <fileSet>
-      <directory>target/site/reference/html</directory>
+      <directory>target/generated-docs</directory>
       <outputDirectory>docs/reference/html</outputDirectory>
     </fileSet>
     
@@ -117,6 +122,20 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>modules/citrus-model/model-kubernetes/target</directory>
+      <outputDirectory>src</outputDirectory>
+      <includes>
+        <include>*sources.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>modules/citrus-model/model-selenium/target</directory>
+      <outputDirectory>src</outputDirectory>
+      <includes>
+        <include>*sources.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
       <directory>modules/citrus-model/model-cucumber/target</directory>
       <outputDirectory>src</outputDirectory>
       <includes>
@@ -166,6 +185,13 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>modules/citrus-jdbc/target</directory>
+      <outputDirectory>src</outputDirectory>
+      <includes>
+        <include>*sources.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
       <directory>modules/citrus-http/target</directory>
       <outputDirectory>src</outputDirectory>
       <includes>
@@ -209,6 +235,20 @@
     </fileSet>
     <fileSet>
       <directory>modules/citrus-docker/target</directory>
+      <outputDirectory>src</outputDirectory>
+      <includes>
+        <include>*sources.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>modules/citrus-kubernetes/target</directory>
+      <outputDirectory>src</outputDirectory>
+      <includes>
+        <include>*sources.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>modules/citrus-selenium/target</directory>
       <outputDirectory>src</outputDirectory>
       <includes>
         <include>*sources.jar</include>
@@ -293,7 +333,7 @@
   <files>
     <!-- PDF reference documentation -->
     <file>
-      <source>target/site/reference/pdf/citrus-reference-2.7-SNAPSHOT.pdf</source>
+      <source>target/generated-docs/index.pdf</source>
       <outputDirectory>docs/reference/pdf</outputDirectory>
     </file>
   </files>

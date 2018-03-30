@@ -25,19 +25,26 @@ import com.consol.citrus.message.Message;
 import com.consol.citrus.message.MessageType;
 import com.consol.citrus.util.FileUtils;
 import com.consol.citrus.validation.MessageValidator;
-import com.consol.citrus.validation.builder.*;
+import com.consol.citrus.validation.builder.AbstractMessageContentBuilder;
+import com.consol.citrus.validation.builder.MessageContentBuilder;
+import com.consol.citrus.validation.builder.PayloadTemplateMessageBuilder;
+import com.consol.citrus.validation.builder.StaticMessageContentBuilder;
 import com.consol.citrus.validation.callback.ValidationCallback;
 import com.consol.citrus.validation.context.DefaultValidationContext;
 import com.consol.citrus.validation.context.ValidationContext;
-import com.consol.citrus.validation.json.*;
+import com.consol.citrus.validation.json.JsonMessageValidationContext;
+import com.consol.citrus.validation.json.JsonPathMessageValidationContext;
+import com.consol.citrus.validation.json.JsonPathVariableExtractor;
 import com.consol.citrus.validation.script.ScriptValidationContext;
-import com.consol.citrus.validation.xml.*;
+import com.consol.citrus.validation.xml.XmlMessageValidationContext;
+import com.consol.citrus.validation.xml.XpathMessageValidationContext;
+import com.consol.citrus.validation.xml.XpathPayloadVariableExtractor;
 import com.consol.citrus.variable.MessageHeaderVariableExtractor;
 import com.consol.citrus.variable.dictionary.DataDictionary;
-import com.consol.citrus.ws.actions.ReceiveSoapMessageAction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.io.Resource;
 import org.springframework.oxm.Marshaller;
 import org.springframework.oxm.XmlMappingException;
@@ -46,6 +53,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.xml.transform.StringResult;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 /**
@@ -64,9 +72,9 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
     private String messageType;
 
     /** Validation context used in this action builder */
+    private DefaultValidationContext defaultValidationContext = new DefaultValidationContext();
     private XmlMessageValidationContext xmlMessageValidationContext = new XmlMessageValidationContext();
     private JsonMessageValidationContext jsonMessageValidationContext = new JsonMessageValidationContext();
-    private DefaultValidationContext defaultValidationContext = new DefaultValidationContext();
 
     /** JSON validation context used in this action builder */
     private JsonPathMessageValidationContext jsonPathValidationContext;
@@ -164,6 +172,16 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
             throw new CitrusRuntimeException("Unable to set payload on message builder type: " + messageContentBuilder.getClass());
         }
     }
+
+    /**
+     * Sets the message name.
+     * @param name
+     * @return
+     */
+    public T name(String name) {
+        getMessageContentBuilder().setMessageName(name);
+        return self;
+    }
     
     /**
      * Expect this message payload data in received message.
@@ -181,8 +199,18 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      * @return
      */
     public T payload(Resource payloadResource) {
+        return payload(payloadResource, FileUtils.getDefaultCharset());
+    }
+
+    /**
+     * Expect this message payload data in received message.
+     * @param payloadResource
+     * @param charset
+     * @return
+     */
+    public T payload(Resource payloadResource, Charset charset) {
         try {
-            setPayload(FileUtils.readToString(payloadResource));
+            setPayload(FileUtils.readToString(payloadResource, charset));
         } catch (IOException e) {
             throw new CitrusRuntimeException("Failed to read payload resource", e);
         }
@@ -298,16 +326,129 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
     }
 
     /**
+     * Expect this message header data as model object which is marshalled to a character sequence using the default object to xml mapper that
+     * is available in Spring bean application context.
+     *
+     * @param model
+     * @return
+     */
+    public T headerFragment(Object model) {
+        Assert.notNull(applicationContext, "Citrus application context is not initialized!");
+
+        if (!CollectionUtils.isEmpty(applicationContext.getBeansOfType(Marshaller.class))) {
+            return headerFragment(model, applicationContext.getBean(Marshaller.class));
+        } else if (!CollectionUtils.isEmpty(applicationContext.getBeansOfType(ObjectMapper.class))) {
+            return headerFragment(model, applicationContext.getBean(ObjectMapper.class));
+        }
+
+        throw new CitrusRuntimeException("Unable to find default object mapper or marshaller in application context");
+    }
+
+    /**
+     * Expect this message header data as model object which is marshalled to a character sequence using the given object to xml mapper that
+     * is accessed by its bean name in Spring bean application context.
+     *
+     * @param model
+     * @param mapperName
+     * @return
+     */
+    public T headerFragment(Object model, String mapperName) {
+        Assert.notNull(applicationContext, "Citrus application context is not initialized!");
+
+        if (applicationContext.containsBean(mapperName)) {
+            Object mapper = applicationContext.getBean(mapperName);
+
+            if (Marshaller.class.isAssignableFrom(mapper.getClass())) {
+                return headerFragment(model, (Marshaller) mapper);
+            } else if (ObjectMapper.class.isAssignableFrom(mapper.getClass())) {
+                return headerFragment(model, (ObjectMapper) mapper);
+            } else {
+                throw new CitrusRuntimeException(String.format("Invalid bean type for mapper '%s' expected ObjectMapper or Marshaller but was '%s'", mapperName, mapper.getClass()));
+            }
+        }
+
+        throw new CitrusRuntimeException("Unable to find default object mapper or marshaller in application context");
+    }
+
+    /**
+     * Expect this message header data as model object which is marshalled to a character sequence
+     * using the default object to xml mapper before validation is performed.
+     * @param model
+     * @param marshaller
+     * @return
+     */
+    public T headerFragment(Object model, Marshaller marshaller) {
+        StringResult result = new StringResult();
+
+        try {
+            marshaller.marshal(model, result);
+        } catch (XmlMappingException e) {
+            throw new CitrusRuntimeException("Failed to marshal object graph for message header data", e);
+        } catch (IOException e) {
+            throw new CitrusRuntimeException("Failed to marshal object graph for message header data", e);
+        }
+
+        return header(result.toString());
+    }
+
+    /**
+     * Expect this message header data as model object which is mapped to a character sequence
+     * using the default object to json mapper before validation is performed.
+     * @param model
+     * @param objectMapper
+     * @return
+     */
+    public T headerFragment(Object model, ObjectMapper objectMapper) {
+        try {
+            return header(objectMapper.writer().writeValueAsString(model));
+        } catch (JsonProcessingException e) {
+            throw new CitrusRuntimeException("Failed to map object graph for message header data", e);
+        }
+    }
+
+    /**
      * Expect this message header data in received message from file resource. Message header data is used in 
      * SOAP messages as XML fragment for instance.
      * @param resource
      * @return
      */
     public T header(Resource resource) {
+        return header(resource, FileUtils.getDefaultCharset());
+    }
+
+    /**
+     * Expect this message header data in received message from file resource. Message header data is used in
+     * SOAP messages as XML fragment for instance.
+     * @param resource
+     * @param charset
+     * @return
+     */
+    public T header(Resource resource, Charset charset) {
         try {
-            getMessageContentBuilder().getHeaderData().add(FileUtils.readToString(resource));
+            getMessageContentBuilder().getHeaderData().add(FileUtils.readToString(resource, charset));
         } catch (IOException e) {
             throw new CitrusRuntimeException("Failed to read header resource", e);
+        }
+
+        return self;
+    }
+
+    /**
+     * Validate header names with case insensitive keys.
+     * @param value
+     * @return
+     */
+    public T headerNameIgnoreCase(boolean value) {
+        defaultValidationContext.setHeaderNameIgnoreCase(value);
+        xmlMessageValidationContext.setHeaderNameIgnoreCase(value);
+        jsonMessageValidationContext.setHeaderNameIgnoreCase(value);
+
+        if (jsonPathValidationContext != null) {
+            jsonPathValidationContext.setHeaderNameIgnoreCase(value);
+        }
+
+        if (scriptValidationContext != null) {
+            scriptValidationContext.setHeaderNameIgnoreCase(value);
         }
 
         return self;
@@ -330,8 +471,18 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      * @return
      */
     public T validateScript(Resource scriptResource) {
+        return validateScript(scriptResource, FileUtils.getDefaultCharset());
+    }
+
+    /**
+     * Reads validation script file resource and sets content as validation script.
+     * @param scriptResource
+     * @param charset
+     * @return
+     */
+    public T validateScript(Resource scriptResource, Charset charset) {
         try {
-            validateScript(FileUtils.readToString(scriptResource));
+            validateScript(FileUtils.readToString(scriptResource, charset));
         } catch (IOException e) {
             throw new CitrusRuntimeException("Failed to read script resource file", e);
         }
@@ -379,17 +530,10 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
         this.messageType = messageType;
         getAction().setMessageType(messageType);
 
-        if (messageType.equalsIgnoreCase(MessageType.XML.name())
-                || messageType.equalsIgnoreCase(MessageType.XHTML.name())) {
-            getAction().getValidationContexts().add(xmlMessageValidationContext);
-            getAction().getValidationContexts().remove(jsonMessageValidationContext);
-        } else if (messageType.equalsIgnoreCase(MessageType.JSON.name())) {
-            getAction().getValidationContexts().remove(xmlMessageValidationContext);
-            getAction().getValidationContexts().add(jsonMessageValidationContext);
-        } else {
-            getAction().getValidationContexts().remove(xmlMessageValidationContext);
-            getAction().getValidationContexts().remove(jsonMessageValidationContext);
+        if (getAction().getValidationContexts().isEmpty()) {
             getAction().getValidationContexts().add(defaultValidationContext);
+            getAction().getValidationContexts().add(xmlMessageValidationContext);
+            getAction().getValidationContexts().add(jsonMessageValidationContext);
         }
 
         return self;
@@ -402,6 +546,7 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      */
     public T schemaValidation(boolean enabled) {
         xmlMessageValidationContext.setSchemaValidation(enabled);
+        jsonMessageValidationContext.setSchemaValidation(enabled);
         return self;
     }
 
@@ -424,10 +569,6 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      */
     public T validate(String path, Object controlValue) {
         if (JsonPathMessageValidationContext.isJsonPathExpression(path)) {
-            if (!messageType.equalsIgnoreCase(MessageType.JSON.name())) {
-                throw new CitrusRuntimeException(String.format("Failed to set JSONPath validation expression on message type '%s' - please use JSON message type", messageType));
-            }
-
             getJsonPathValidationContext().getJsonPathExpressions().put(path, controlValue);
         } else {
             getXPathValidationContext().getXpathExpressions().put(path, controlValue);
@@ -482,6 +623,15 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
         xmlMessageValidationContext.setSchema(schemaName);
         return self;
     }
+
+    /**
+     * Sets explicit schema instance name to use for schema validation.
+     * @param schemaName The name of the schema bean
+     */
+    public T jsonSchema(String schemaName) {
+        jsonMessageValidationContext.setSchema(schemaName);
+        return self;
+    }
     
     /**
      * Sets explicit xsd schema repository instance to use for validation.
@@ -490,6 +640,16 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      */
     public T xsdSchemaRepository(String schemaRepository) {
         xmlMessageValidationContext.setSchemaRepository(schemaRepository);
+        return self;
+    }
+
+    /**
+     * Sets explicit json schema repository instance to use for validation.
+     * @param schemaRepository The name of the schema repository bean
+     * @return
+     */
+    public T jsonSchemaRepository(String schemaRepository) {
+        jsonMessageValidationContext.setSchemaRepository(schemaRepository);
         return self;
     }
     
@@ -523,7 +683,7 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      * @return
      */
     public T selector(String messageSelector) {
-        getAction().setMessageSelectorString(messageSelector);
+        getAction().setMessageSelector(messageSelector);
 
         return self;
     }
@@ -534,7 +694,7 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      * @return
      */
     public T selector(Map<String, Object> messageSelector) {
-        getAction().setMessageSelector(messageSelector);
+        getAction().setMessageSelectorMap(messageSelector);
 
         return self;
     }
@@ -626,7 +786,10 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
      * @return
      */
     public T validationCallback(ValidationCallback callback) {
-        callback.setApplicationContext(applicationContext);
+        if (callback instanceof ApplicationContextAware) {
+            ((ApplicationContextAware) callback).setApplicationContext(applicationContext);
+        }
+
         getAction().setValidationCallback(callback);
         return self;
     }
@@ -638,66 +801,6 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
     public T withApplicationContext(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
         return self;
-    }
-
-    /**
-     * Enable SOAP specific properties on this receiving message action.
-     * @return
-     * @deprecated since 2.6 in favor of using {@link SoapActionBuilder}
-     */
-    public ReceiveSoapMessageBuilder soap() {
-        ReceiveSoapMessageAction receiveSoapMessageAction = new ReceiveSoapMessageAction();
-        
-        receiveSoapMessageAction.setActor(getAction().getActor());
-        receiveSoapMessageAction.setDescription(getAction().getDescription());
-        receiveSoapMessageAction.setEndpoint(getAction().getEndpoint());
-        receiveSoapMessageAction.setEndpointUri(getAction().getEndpointUri());
-        receiveSoapMessageAction.setMessageSelector(getAction().getMessageSelector());
-        receiveSoapMessageAction.setMessageSelectorString(getAction().getMessageSelectorString());
-        receiveSoapMessageAction.setMessageType(getAction().getMessageType());
-        receiveSoapMessageAction.setMessageBuilder(getAction().getMessageBuilder());
-        receiveSoapMessageAction.setReceiveTimeout(getAction().getReceiveTimeout());
-        receiveSoapMessageAction.setValidationCallback(getAction().getValidationCallback());
-        receiveSoapMessageAction.setValidationContexts(getAction().getValidationContexts());
-        receiveSoapMessageAction.setValidator(getAction().getValidator());
-        receiveSoapMessageAction.setVariableExtractors(getAction().getVariableExtractors());
-
-        action.setDelegate(receiveSoapMessageAction);
-
-        ReceiveSoapMessageBuilder builder = new ReceiveSoapMessageBuilder(action);
-        builder.withApplicationContext(applicationContext);
-        builder.setMessageType(messageType);
-        builder.setDefaultValidationContext(defaultValidationContext);
-        builder.setXmlMessageValidationContext(xmlMessageValidationContext);
-        builder.setJsonPathValidationContext(jsonPathValidationContext);
-        builder.setScriptValidationContext(scriptValidationContext);
-        builder.setJsonPathValidationContext(jsonPathValidationContext);
-        builder.setHeaderExtractor(headerExtractor);
-        builder.setXpathExtractor(xpathExtractor);
-        builder.setJsonPathExtractor(jsonPathExtractor);
-
-        return builder;
-    }
-
-    /**
-     * Enable HTTP specific properties on this receiving message action.
-     * @return
-     * @deprecated since 2.6 in favor of using {@link HttpActionBuilder}
-     */
-    public ReceiveHttpMessageBuilder http() {
-        ReceiveHttpMessageBuilder builder = new ReceiveHttpMessageBuilder(action);
-        builder.withApplicationContext(applicationContext);
-        builder.setMessageType(messageType);
-        builder.setDefaultValidationContext(defaultValidationContext);
-        builder.setXmlMessageValidationContext(xmlMessageValidationContext);
-        builder.setJsonPathValidationContext(jsonPathValidationContext);
-        builder.setScriptValidationContext(scriptValidationContext);
-        builder.setJsonPathValidationContext(jsonPathValidationContext);
-        builder.setHeaderExtractor(headerExtractor);
-        builder.setXpathExtractor(xpathExtractor);
-        builder.setJsonPathExtractor(jsonPathExtractor);
-
-        return builder;
     }
 
     /**
@@ -749,7 +852,7 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
     private XpathMessageValidationContext getXPathValidationContext() {
         if (xmlMessageValidationContext instanceof XpathMessageValidationContext) {
             return ((XpathMessageValidationContext)xmlMessageValidationContext);
-        } else if (xmlMessageValidationContext instanceof XmlMessageValidationContext) {
+        } else {
             XpathMessageValidationContext xPathContext = new XpathMessageValidationContext();
             xPathContext.setNamespaces(xmlMessageValidationContext.getNamespaces());
             xPathContext.setControlNamespaces(xmlMessageValidationContext.getControlNamespaces());
@@ -757,6 +860,7 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
             xPathContext.setSchema(xmlMessageValidationContext.getSchema());
             xPathContext.setSchemaRepository(xmlMessageValidationContext.getSchemaRepository());
             xPathContext.setSchemaValidation(xmlMessageValidationContext.isSchemaValidationEnabled());
+            xPathContext.setHeaderNameIgnoreCase(xmlMessageValidationContext.isHeaderNameIgnoreCase());
             xPathContext.setDTDResource(xmlMessageValidationContext.getDTDResource());
 
             getAction().getValidationContexts().remove(xmlMessageValidationContext);
@@ -764,8 +868,6 @@ public class ReceiveMessageBuilder<A extends ReceiveMessageAction, T extends Rec
 
             xmlMessageValidationContext = xPathContext;
             return xPathContext;
-        } else {
-            throw new CitrusRuntimeException("Unable to set XML property on validation context type " + xmlMessageValidationContext);
         }
     }
 

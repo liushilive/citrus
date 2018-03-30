@@ -23,6 +23,7 @@ import com.consol.citrus.context.TestContext;
 import com.consol.citrus.dsl.builder.*;
 import com.consol.citrus.dsl.container.FinallySequence;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
+import com.consol.citrus.exceptions.TestCaseFailedException;
 import com.consol.citrus.message.MessageType;
 import com.consol.citrus.report.TestActionListeners;
 import com.consol.citrus.script.GroovyAction;
@@ -149,7 +150,15 @@ public class DefaultTestRunner implements TestRunner {
 
     @Override
     public void stop() {
-        testCase.finish(context);
+        try {
+            if (!CollectionUtils.isEmpty(context.getExceptions())) {
+                CitrusRuntimeException ex = context.getExceptions().remove(0);
+                testCase.setTestResult(TestResult.failed(testCase.getName(), ex));
+                throw new TestCaseFailedException(ex);
+            }
+        } finally {
+            testCase.finish(context);
+        }
     }
 
     @Override
@@ -319,15 +328,6 @@ public class DefaultTestRunner implements TestRunner {
     }
 
     @Override
-    @Deprecated
-    public TestAction sendSoapFault(BuilderSupport<SendSoapFaultBuilder> configurer) {
-        SendSoapFaultBuilder builder = new SendSoapFaultBuilder()
-                .withApplicationContext(applicationContext);
-        configurer.configure(builder);
-        return run(builder.build().getDelegate());
-    }
-
-    @Override
     public SleepAction sleep() {
         return run(new SleepAction());
     }
@@ -383,6 +383,14 @@ public class DefaultTestRunner implements TestRunner {
     public StopTimeAction stopTime(String id) {
         StopTimeAction action = new StopTimeAction();
         action.setId(id);
+        return run(action);
+    }
+
+    @Override
+    public StopTimeAction stopTime(String id, String suffix) {
+        StopTimeAction action = new StopTimeAction();
+        action.setId(id);
+        action.setSuffix(suffix);
         return run(action);
     }
 
@@ -478,6 +486,13 @@ public class DefaultTestRunner implements TestRunner {
     }
 
     @Override
+    public AsyncBuilder async() {
+        AsyncBuilder builder = new AsyncBuilder(this);
+        containers.push(builder.build());
+        return builder;
+    }
+
+    @Override
     public TimerBuilder timer() {
         TimerBuilder builder = new TimerBuilder(this);
         containers.push(builder.build());
@@ -500,6 +515,20 @@ public class DefaultTestRunner implements TestRunner {
     @Override
     public TestAction docker(BuilderSupport<DockerActionBuilder> configurer) {
         DockerActionBuilder builder = new DockerActionBuilder();
+        configurer.configure(builder);
+        return run(builder.build());
+    }
+
+    @Override
+    public TestAction kubernetes(BuilderSupport<KubernetesActionBuilder> configurer) {
+        KubernetesActionBuilder builder = new KubernetesActionBuilder();
+        configurer.configure(builder);
+        return run(builder.build());
+    }
+
+    @Override
+    public TestAction selenium(BuilderSupport<SeleniumActionBuilder> configurer) {
+        SeleniumActionBuilder builder = new SeleniumActionBuilder();
         configurer.configure(builder);
         return run(builder.build());
     }

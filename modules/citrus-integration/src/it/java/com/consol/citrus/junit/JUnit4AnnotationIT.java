@@ -17,6 +17,7 @@
 package com.consol.citrus.junit;
 
 import com.consol.citrus.annotations.CitrusXmlTest;
+import com.consol.citrus.exceptions.TestCaseFailedException;
 import org.junit.Test;
 
 /**
@@ -43,5 +44,10 @@ public class JUnit4AnnotationIT extends AbstractJUnit4CitrusTest {
     @Test
     @CitrusXmlTest(packageScan = "com.consol.citrus.functions")
     public void JUnit4Annotation_3_IT() {
+    }
+
+    @Test(expected = TestCaseFailedException.class)
+    @CitrusXmlTest(name = "FailJUnit4IT")
+    public void JUnit4Annotation_4_IT() {
     }
 }

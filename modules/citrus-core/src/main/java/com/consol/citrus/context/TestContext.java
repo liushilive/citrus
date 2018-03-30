@@ -16,6 +16,7 @@
 
 package com.consol.citrus.context;
 
+import com.consol.citrus.Citrus;
 import com.consol.citrus.TestCase;
 import com.consol.citrus.container.StopTimer;
 import com.consol.citrus.endpoint.EndpointFactory;
@@ -23,11 +24,12 @@ import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.exceptions.VariableNullValueException;
 import com.consol.citrus.functions.FunctionRegistry;
 import com.consol.citrus.functions.FunctionUtils;
-import com.consol.citrus.message.Message;
+import com.consol.citrus.message.*;
 import com.consol.citrus.report.MessageListeners;
 import com.consol.citrus.report.TestListeners;
+import com.consol.citrus.util.TypeConversionUtils;
 import com.consol.citrus.validation.MessageValidatorRegistry;
-import com.consol.citrus.validation.interceptor.MessageConstructionInterceptors;
+import com.consol.citrus.validation.interceptor.GlobalMessageConstructionInterceptors;
 import com.consol.citrus.validation.matcher.ValidationMatcherRegistry;
 import com.consol.citrus.variable.GlobalVariables;
 import com.consol.citrus.variable.VariableUtils;
@@ -59,6 +61,9 @@ public class TestContext {
     
     /** Global variables */
     private GlobalVariables globalVariables;
+
+    /** Message store */
+    private MessageStore messageStore = new DefaultMessageStore();
     
     /** Function registry holding all available functions */
     private FunctionRegistry functionRegistry = new FunctionRegistry();
@@ -82,7 +87,7 @@ public class TestContext {
     private MessageListeners messageListeners = new MessageListeners();
 
     /** List of global message construction interceptors */
-    private MessageConstructionInterceptors messageConstructionInterceptors = new MessageConstructionInterceptors();
+    private GlobalMessageConstructionInterceptors globalMessageConstructionInterceptors = new GlobalMessageConstructionInterceptors();
 
     /** Central namespace context builder */
     private NamespaceContextBuilder namespaceContextBuilder = new NamespaceContextBuilder();
@@ -93,11 +98,14 @@ public class TestContext {
     /** Timers registered in test context, that can be stopped */
     protected Map<String, StopTimer> timers = new ConcurrentHashMap<>();
 
+    /** List of exceptions that actions raised during execution of forked operations */
+    private List<CitrusRuntimeException> exceptions = new ArrayList<>();
+
     /**
      * Default constructor
      */
     public TestContext() {
-        variables = new ConcurrentHashMap<String, Object>();
+        variables = new ConcurrentHashMap<>();
     }
     
     /**
@@ -111,9 +119,20 @@ public class TestContext {
      * @return value of the variable
      */
     public String getVariable(final String variableExpression) {
-        return getVariableObject(variableExpression).toString();
+        return getVariable(variableExpression, String.class);
     }
-    
+
+    /**
+     * Gets typed variable value.
+     * @param variableExpression
+     * @param type
+     * @param <T>
+     * @return
+     */
+    public <T> T getVariable(String variableExpression, Class<T> type) {
+        return TypeConversionUtils.convertIfNecessary(getVariableObject(variableExpression), type);
+    }
+
     /**
      * Gets the value for the given variable as object representation.
      * Use this method if you seek for test objects stored in the context.
@@ -124,8 +143,10 @@ public class TestContext {
      */
     public Object getVariableObject(final String variableExpression) {
         String variableName = VariableUtils.cutOffVariablesPrefix(variableExpression);
-        
-        if (variables.containsKey(variableName)) {
+
+        if (variableName.startsWith(Citrus.VARIABLE_ESCAPE) && variableName.endsWith(Citrus.VARIABLE_ESCAPE)) {
+            return Citrus.VARIABLE_PREFIX + VariableUtils.cutOffVariablesEscaping(variableName) + Citrus.VARIABLE_SUFFIX;
+        } else if (variables.containsKey(variableName)) {
             return variables.get(variableName);
         } else if (variableName.contains(".")) {
             String objectName = variableName.substring(0, variableName.indexOf("."));
@@ -192,6 +213,26 @@ public class TestContext {
 
         variables.put(VariableUtils.cutOffVariablesPrefix(variableName), value);
     }
+
+    /**
+     * Add variables to context.
+     * @param variableNames the variable names to set
+     * @param variableValues the variable values to set
+     */
+    public void addVariables(String[] variableNames, Object[] variableValues) {
+        if (variableNames.length != variableValues.length) {
+            throw new CitrusRuntimeException(String.format(
+                    "Invalid context variable usage - received '%s' variables with '%s' values",
+                    variableNames.length,
+                    variableValues.length));
+        }
+
+        for (int i = 0; i < variableNames.length; i++) {
+            if (variableValues[i] != null) {
+                setVariable(variableNames[i], variableValues[i]);
+            }
+        }
+    }
     
     /**
      * Add several new variables to test context. Existing variables will be 
@@ -216,16 +257,16 @@ public class TestContext {
      * @param map optionally having variable entries.
      * @return the constructed map without variable entries.
      */
-    public Map<String, Object> resolveDynamicValuesInMap(final Map<String, Object> map) {
-        Map<String, Object> target = new HashMap<>(map.size());
+    public <T> Map<String, T> resolveDynamicValuesInMap(final Map<String, T> map) {
+        Map<String, T> target = new LinkedHashMap<>(map.size());
 
-        for (Entry<String, Object> entry : map.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
+        for (Entry<String, T> entry : map.entrySet()) {
+            String key = replaceDynamicContentInString(entry.getKey());
+            T value = entry.getValue();
 
             if (value instanceof String) {
                 //put value into target map, but check if value is variable or function first
-                target.put(key, replaceDynamicContentInString((String) value));
+                target.put(key, (T) replaceDynamicContentInString((String) value));
             } else {
                 target.put(key, value);
             }
@@ -240,14 +281,27 @@ public class TestContext {
      * @param list having optional variable entries.
      * @return the constructed list without variable entries.
      */
-    public List<String> resolveDynamicValuesInList(final List<String> list) {
-        List<String> variableFreeList = new ArrayList<>(list.size());
+    public <T> List<T> resolveDynamicValuesInList(final List<T> list) {
+        List<T> variableFreeList = new ArrayList<>(list.size());
 
-        for (String entry : list) {
-            //add new value after check if it is variable or function
-            variableFreeList.add(replaceDynamicContentInString(entry));
+        for (T value : list) {
+            if (value instanceof String) {
+                //add new value after check if it is variable or function
+                variableFreeList.add((T) replaceDynamicContentInString((String) value));
+            }
         }
         return variableFreeList;
+    }
+
+    /**
+     * Replaces variables and functions in array with respective values and
+     * returns the new array representation.
+     *
+     * @param array having optional variable entries.
+     * @return the constructed list without variable entries.
+     */
+    public <T> T[] resolveDynamicValuesInArray(final T[] array) {
+        return resolveDynamicValuesInList(Arrays.asList(array)).toArray(Arrays.copyOf(array, array.length));
     }
     
     /**
@@ -286,10 +340,13 @@ public class TestContext {
      * @return resulting string without any variable place holders.
      */
     public String replaceDynamicContentInString(final String str, boolean enableQuoting) {
-        String result;
-        result = VariableUtils.replaceVariablesInString(str, this, enableQuoting);
-        result = FunctionUtils.replaceFunctionsInString(result, this, enableQuoting);
-        
+        String result = null;
+
+        if (str != null) {
+            result = VariableUtils.replaceVariablesInString(str, this, enableQuoting);
+            result = FunctionUtils.replaceFunctionsInString(result, this, enableQuoting);
+        }
+
         return result;
     }
     
@@ -366,7 +423,25 @@ public class TestContext {
     public Map<String, Object> getGlobalVariables() {
         return globalVariables.getVariables();
     }
-    
+
+    /**
+     * Sets the messageStore property.
+     *
+     * @param messageStore
+     */
+    public void setMessageStore(MessageStore messageStore) {
+        this.messageStore = messageStore;
+    }
+
+    /**
+     * Gets the value of the messageStore property.
+     *
+     * @return the messageStore
+     */
+    public MessageStore getMessageStore() {
+        return messageStore;
+    }
+
     /**
      * Get the current function registry.
      * @return the functionRegistry
@@ -448,19 +523,19 @@ public class TestContext {
     }
 
     /**
-     * Gets the message construction interceptors.
+     * Gets the global message construction interceptors.
      * @return
      */
-    public MessageConstructionInterceptors getMessageConstructionInterceptors() {
-        return messageConstructionInterceptors;
+    public GlobalMessageConstructionInterceptors getGlobalMessageConstructionInterceptors() {
+        return globalMessageConstructionInterceptors;
     }
 
     /**
-     * Sets the messsage construction interceptors.
+     * Sets the global messsage construction interceptors.
      * @param messageConstructionInterceptors
      */
-    public void setMessageConstructionInterceptors(MessageConstructionInterceptors messageConstructionInterceptors) {
-        this.messageConstructionInterceptors = messageConstructionInterceptors;
+    public void setGlobalMessageConstructionInterceptors(GlobalMessageConstructionInterceptors messageConstructionInterceptors) {
+        this.globalMessageConstructionInterceptors = messageConstructionInterceptors;
     }
 
     /**
@@ -562,7 +637,7 @@ public class TestContext {
      * @param timerId a unique timer id
      */
     public void registerTimer(String timerId, StopTimer timer) {
-        if(timers.containsKey(timerId)) {
+        if (timers.containsKey(timerId)) {
             throw new CitrusRuntimeException("Timer already registered with this id");
         }
         timers.put(timerId, timer);
@@ -575,7 +650,7 @@ public class TestContext {
      */
     public boolean stopTimer(String timerId) {
         StopTimer timer = timers.get(timerId);
-        if(timer != null) {
+        if (timer != null) {
             timer.stopTimer();
             return true;
         }
@@ -589,5 +664,23 @@ public class TestContext {
         for (String timerId : timers.keySet()) {
             stopTimer(timerId);
         }
+    }
+
+    /**
+     * Add new exception to the context marking the test as failed. This
+     * is usually used by actions to mark exceptions during forked operations.
+     * @param exception
+     */
+    public void addException(CitrusRuntimeException exception) {
+        this.exceptions.add(exception);
+    }
+
+    /**
+     * Gets the value of the exceptions property.
+     *
+     * @return the exceptions
+     */
+    public List<CitrusRuntimeException> getExceptions() {
+        return exceptions;
     }
 }

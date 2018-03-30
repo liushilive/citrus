@@ -5,7 +5,7 @@
   <parent>
     <artifactId>citrus</artifactId>
     <groupId>com.consol.citrus</groupId>
-    <version>2.7-SNAPSHOT</version>
+    <version>2.7.5-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -16,6 +16,7 @@
   
   <modules>
     <module>model-core</module>
+    <module>model-jdbc</module>
     <module>model-jms</module>
     <module>model-http</module>
     <module>model-websocket</module>
@@ -26,10 +27,12 @@
     <module>model-camel</module>
     <module>model-ftp</module>
     <module>model-docker</module>
+    <module>model-kubernetes</module>
     <module>model-rmi</module>
     <module>model-jmx</module>
     <module>model-cucumber</module>
     <module>model-zookeeper</module>
+    <module>model-selenium</module>
   </modules>
 
   <dependencies>

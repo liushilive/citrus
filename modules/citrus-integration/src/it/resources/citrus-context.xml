@@ -134,7 +134,7 @@
          use-object-messages="true"
          destination-name="${jms.ws.stub.response}"/>
 
-    <citrus-restdocs:configurer id="restDocSoapConfigurer" type="soap" output-directory="test-output/generated-snippets"/>
+    <citrus-restdocs:configurer id="restDocSoapConfigurer" type="soap" output-directory="target/citrus-docs/generated-snippets"/>
     <citrus-restdocs:client-interceptor id="restDocSoapClientInterceptor" type="soap" identifier="test-case/{method-name}"/>
 
     <util:list id="restDocSoapInterceptors">
@@ -198,14 +198,16 @@
 
     <citrus-http:server id="echoHttpServer"
           port="8074"
+          handle-cookies="true"
           auto-start="true"/>
 
     <citrus-http:client id="echoHttpClient"
                       request-url="http://localhost:8074/test"
                       request-method="POST"
+                      handle-cookies="true"
                       content-type="text/xml"/>
 
-    <citrus-restdocs:configurer id="restDocConfigurer" output-directory="test-output/generated-snippets"/>
+    <citrus-restdocs:configurer id="restDocConfigurer" output-directory="target/citrus-docs/generated-snippets"/>
     <citrus-restdocs:client-interceptor id="restDocClientInterceptor" identifier="test-case/{method-name}"/>
 
     <util:list id="restDocInterceptors">
@@ -247,12 +249,17 @@
 
     <citrus-restdocs:documentation id="restDocumentation" identifier="rest-docs/{method-name}"/>
 
-    <citrus-http:client id="httpStandaloneClient"
+    <citrus-http:client id="httpRestDocClient"
          request-url="http://localhost:8073/test"
          request-method="POST"
          interceptors="restDocumentation"
          content-type="text/xml"/>
   
+    <citrus-http:client id="httpStandaloneClient"
+         request-url="http://localhost:8073/test"
+         request-method="POST"
+         content-type="text/xml"/>
+
     <citrus-jms:endpoint id="httpServerRequestEndpoint" destination-name="${jms.queue.http.request.forward}"/>
 
     <citrus-jms:endpoint id="httpServerResponseEndpoint"
@@ -382,6 +389,10 @@
             <value>2</value>
         </property>
     </bean>
+
+    <bean id="testTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+      <constructor-arg ref="testDataSource"/>
+    </bean>
     
     <!-- Citrus JMS Endpoints -->
     <citrus-jms:endpoint id="helloRequestJmsMessageSender" destination-name="Citrus.Hello.Request.Queue"/>
@@ -440,8 +451,10 @@
     
     <citrus-jms:endpoint id="dummyMessageReceiver" destination-name="${jms.queue.test}"/>
     
+    <citrus:channel-endpoint id="greetingEndpoint" channel="greetings"/>
+
     <citrus:channel-endpoint id="channelRequestSender" channel="greetings"/>
-    
+
     <citrus:channel-endpoint id="channelResponseReceiver"
          channel="greetings"
          timeout="5000"/>

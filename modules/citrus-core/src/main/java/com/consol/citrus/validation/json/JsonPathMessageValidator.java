@@ -19,12 +19,12 @@ package com.consol.citrus.validation.json;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.exceptions.ValidationException;
+import com.consol.citrus.json.JsonPathUtils;
 import com.consol.citrus.message.Message;
-import com.consol.citrus.message.MessageType;
 import com.consol.citrus.validation.AbstractMessageValidator;
 import com.consol.citrus.validation.ValidationUtils;
-import com.jayway.jsonpath.*;
-import net.minidev.json.JSONArray;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.ReadContext;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.slf4j.Logger;
@@ -51,47 +51,23 @@ public class JsonPathMessageValidator extends AbstractMessageValidator<JsonPathM
             throw new ValidationException("Unable to validate message elements - receive message payload was empty");
         }
 
-        log.debug("Start JSONPath element validation");
+        log.debug("Start JSONPath element validation ...");
 
-        String jsonPathExpression = null;
+        String jsonPathExpression;
         try {
             JSONParser parser = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
             Object receivedJson = parser.parse(receivedMessage.getPayload(String.class));
             ReadContext readerContext = JsonPath.parse(receivedJson);
 
             for (Map.Entry<String, Object> entry : validationContext.getJsonPathExpressions().entrySet()) {
-                jsonPathExpression = context.replaceDynamicContentInString(entry.getKey());
-
-                String jsonPathFunction = null;
-                for (String name : JsonPathFunctions.getSupportedFunctions()) {
-                    if (jsonPathExpression.endsWith(String.format(".%s()", name))) {
-                        jsonPathFunction = name;
-                        jsonPathExpression = jsonPathExpression.substring(0, jsonPathExpression.length() - String.format(".%s()", name).length());
-                    }
-                }
-
-                Object jsonPathResult;
-                if (JsonPath.isPathDefinite(jsonPathExpression)) {
-                    jsonPathResult = readerContext.read(jsonPathExpression);
-                } else {
-                    JSONArray values = readerContext.read(jsonPathExpression);
-                    if (values.size() == 1) {
-                        jsonPathResult = values.get(0);
-                    } else {
-                        jsonPathResult = values;
-                    }
-                }
-
-                if (StringUtils.hasText(jsonPathFunction)) {
-                    jsonPathResult = JsonPathFunctions.evaluate(jsonPathResult, jsonPathFunction);
-                }
-
                 Object expectedValue = entry.getValue();
                 if (expectedValue instanceof String) {
                     //check if expected value is variable or function (and resolve it, if yes)
                     expectedValue = context.replaceDynamicContentInString(String.valueOf(expectedValue));
                 }
 
+                jsonPathExpression = context.replaceDynamicContentInString(entry.getKey());
+                Object jsonPathResult = JsonPathUtils.evaluate(readerContext, jsonPathExpression);
                 //do the validation of actual and expected value for element
                 ValidationUtils.validateValues(jsonPathResult, expectedValue, jsonPathExpression, context);
 
@@ -100,11 +76,9 @@ public class JsonPathMessageValidator extends AbstractMessageValidator<JsonPathM
                 }
             }
 
-            log.info("JSONPath element validation successful: All elements OK");
+            log.info("JSONPath element validation successful: All values OK");
         } catch (ParseException e) {
             throw new CitrusRuntimeException("Failed to parse JSON text", e);
-        } catch (PathNotFoundException e) {
-            throw new ValidationException(String.format("Failed to validate JSON element for path: %s", jsonPathExpression), e);
         }
     }
 
@@ -115,7 +89,7 @@ public class JsonPathMessageValidator extends AbstractMessageValidator<JsonPathM
 
     @Override
     public boolean supportsMessageType(String messageType, Message message) {
-        return messageType.equalsIgnoreCase(MessageType.JSON.toString());
+        return new JsonTextMessageValidator().supportsMessageType(messageType, message);
 
     }
 }

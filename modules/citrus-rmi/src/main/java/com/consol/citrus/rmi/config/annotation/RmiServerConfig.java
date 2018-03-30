@@ -32,6 +32,12 @@ import java.rmi.registry.Registry;
 public @interface RmiServerConfig {
 
     /**
+     * Auto start.
+     * @return
+     */
+    boolean autoStart() default false;
+
+    /**
      * Server uri.
      * @return
      */
@@ -78,6 +84,18 @@ public @interface RmiServerConfig {
      * @return
      */
     String correlator() default "";
+
+    /**
+     * Endpoint adapter reference.
+     * @return
+     */
+    String endpointAdapter() default "";
+
+    /**
+     * Debug logging enabled.
+     * @return
+     */
+    boolean debugLogging() default false;
 
     /**
      * Polling interval.

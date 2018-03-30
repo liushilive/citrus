@@ -20,7 +20,6 @@ import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.message.MessageHeaders;
 import com.consol.citrus.util.FileUtils;
-import com.consol.citrus.ws.message.SoapAttachment;
 import com.consol.citrus.ws.message.*;
 import org.springframework.util.StringUtils;
 
@@ -43,10 +42,10 @@ public class SendSoapFaultAction extends SendSoapMessageAction {
     private String faultActor;
 
     /** List of fault detail contents */
-    private List<String> faultDetails = new ArrayList<String>();
+    private List<String> faultDetails = new ArrayList<>();
 
     /** List of fault detail resource paths */
-    private List<String> faultDetailResourcePaths = new ArrayList<String>();
+    private List<String> faultDetailResourcePaths = new ArrayList<>();
 
     @Override
     protected SoapMessage createMessage(TestContext context, String messageType) {
@@ -89,7 +88,7 @@ public class SendSoapFaultAction extends SendSoapMessageAction {
         try {
             for (String faultDetailPath : faultDetailResourcePaths) {
                 String resourcePath = context.replaceDynamicContentInString(faultDetailPath);
-                soapFault.addFaultDetail(context.replaceDynamicContentInString(FileUtils.readToString(FileUtils.getFileResource(resourcePath, context))));
+                soapFault.addFaultDetail(context.replaceDynamicContentInString(FileUtils.readToString(FileUtils.getFileResource(resourcePath, context), FileUtils.getCharset(resourcePath))));
             }
         } catch (IOException e) {
             throw new CitrusRuntimeException("Failed to create SOAP fault detail from file resource", e);

@@ -17,6 +17,7 @@
 package com.consol.citrus.config.xml;
 
 import com.consol.citrus.config.util.BeanDefinitionParserUtils;
+import com.consol.citrus.json.schema.SimpleJsonSchema;
 import com.consol.citrus.xml.schema.WsdlXsdSchema;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -38,17 +39,22 @@ public class SchemaParser implements BeanDefinitionParser {
      */
     public BeanDefinition parse(Element element, ParserContext parserContext) {
         String location = element.getAttribute("location");
-        BeanDefinitionBuilder builder;
+        BeanDefinitionBuilder builder = null;
 
         if (location.endsWith(".wsdl")) {
             builder = BeanDefinitionBuilder.genericBeanDefinition(WsdlXsdSchema.class);
             BeanDefinitionParserUtils.setPropertyValue(builder, location, "wsdl");
-        } else {
+        } else if (location.endsWith(".xsd")) {
             builder = BeanDefinitionBuilder.genericBeanDefinition(SimpleXsdSchema.class);
             BeanDefinitionParserUtils.setPropertyValue(builder, location, "xsd");
+        } else if (location.endsWith(".json")) {
+            builder = BeanDefinitionBuilder.genericBeanDefinition(SimpleJsonSchema.class);
+            BeanDefinitionParserUtils.setPropertyValue(builder, location, "json");
         }
 
-        parserContext.getRegistry().registerBeanDefinition(element.getAttribute("id"), builder.getBeanDefinition());
+        if (builder != null) {
+            parserContext.getRegistry().registerBeanDefinition(element.getAttribute("id"), builder.getBeanDefinition());
+        }
 
         return null;
     }

@@ -17,11 +17,9 @@
 package com.consol.citrus.http.config.xml;
 
 import com.consol.citrus.config.util.BeanDefinitionParserUtils;
-import com.consol.citrus.config.xml.DescriptionElementParser;
-import com.consol.citrus.config.xml.ReceiveMessageActionParser;
+import com.consol.citrus.config.xml.*;
 import com.consol.citrus.http.message.HttpMessage;
-import com.consol.citrus.message.MessageHeaders;
-import com.consol.citrus.validation.builder.AbstractMessageContentBuilder;
+import com.consol.citrus.http.message.HttpMessageContentBuilder;
 import com.consol.citrus.validation.context.ValidationContext;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -31,7 +29,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.xml.DomUtils;
 import org.w3c.dom.Element;
 
-import java.util.*;
+import javax.servlet.http.Cookie;
+import java.util.List;
 
 /**
  * @author Christoph Deppisch
@@ -68,16 +67,19 @@ public class HttpReceiveRequestActionParser extends ReceiveMessageActionParser {
         }
 
         List<?> params = DomUtils.getChildElementsByTagName(requestElement, "param");
-        for (Iterator<?> iter = params.iterator(); iter.hasNext();) {
-            Element param = (Element) iter.next();
+        for (Object item : params) {
+            Element param = (Element) item;
             httpMessage.queryParam(param.getAttribute("name"), param.getAttribute("value"));
         }
+
+        Element body = DomUtils.getChildElementByTagName(requestElement, "body");
+        List<ValidationContext> validationContexts = parseValidationContexts(body, builder);
 
         Element headers = DomUtils.getChildElementByTagName(requestElement, "headers");
         if (headers != null) {
             List<?> headerElements = DomUtils.getChildElementsByTagName(headers, "header");
-            for (Iterator<?> iter = headerElements.iterator(); iter.hasNext();) {
-                Element header = (Element) iter.next();
+            for (Object headerElement : headerElements) {
+                Element header = (Element) headerElement;
                 httpMessage.setHeader(header.getAttribute("name"), header.getAttribute("value"));
             }
 
@@ -95,20 +97,20 @@ public class HttpReceiveRequestActionParser extends ReceiveMessageActionParser {
             if (StringUtils.hasText(version)) {
                 httpMessage.version(version);
             }
+
+            List<?> cookieElements = DomUtils.getChildElementsByTagName(headers, "cookie");
+            for (Object cookieElement : cookieElements) {
+                Element cookie = (Element) cookieElement;
+                httpMessage.cookie(new Cookie(cookie.getAttribute("name"), cookie.getAttribute("value")));
+            }
+
+            boolean ignoreCase = headers.hasAttribute("ignore-case") ? Boolean.valueOf(headers.getAttribute("ignore-case")) : true;
+            validationContexts.forEach(context -> context.setHeaderNameIgnoreCase(ignoreCase));
         }
 
-        parseMessageSelector(element, builder);
+        MessageSelectorParser.doParse(element, builder);
 
-        Element body = DomUtils.getChildElementByTagName(requestElement, "body");
-        List<ValidationContext> validationContexts = parseValidationContexts(body, builder);
-
-        AbstractMessageContentBuilder messageBuilder = constructMessageBuilder(body);
-        Map<String, Object> messageHeaders = httpMessage.getHeaders();
-        messageHeaders.remove(MessageHeaders.ID);
-        messageHeaders.remove(MessageHeaders.TIMESTAMP);
-        messageBuilder.setMessageHeaders(messageHeaders);
-
-        builder.addPropertyValue("messageBuilder", messageBuilder);
+        builder.addPropertyValue("messageBuilder", new HttpMessageContentBuilder(httpMessage, constructMessageBuilder(body)));
         builder.addPropertyValue("validationContexts", validationContexts);
         builder.addPropertyValue("variableExtractors", getVariableExtractors(element));
 

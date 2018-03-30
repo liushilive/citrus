@@ -21,14 +21,16 @@ import com.consol.citrus.endpoint.adapter.EmptyResponseEndpointAdapter;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.message.*;
 import com.consol.citrus.ws.client.WebServiceEndpointConfiguration;
+import com.consol.citrus.ws.message.*;
 import com.consol.citrus.ws.message.SoapFault;
-import com.consol.citrus.ws.message.SoapMessageHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.*;
 import org.springframework.ws.context.MessageContext;
+import org.springframework.ws.mime.MimeMessage;
 import org.springframework.ws.server.endpoint.MessageEndpoint;
 import org.springframework.ws.soap.*;
+import org.springframework.ws.soap.SoapMessage;
 import org.springframework.ws.soap.axiom.AxiomSoapMessage;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
 import org.springframework.ws.soap.server.endpoint.SoapFaultDefinition;
@@ -109,7 +111,8 @@ public class WebServiceEndpoint implements MessageEndpoint {
             } else {
                 addSoapBody(response, replyMessage);
             }
-            
+
+            addSoapAttachments(response, replyMessage);
             addSoapHeaders(response, replyMessage);
             addMimeHeaders(response, replyMessage);
         } else {
@@ -119,7 +122,23 @@ public class WebServiceEndpoint implements MessageEndpoint {
             log.warn("No SOAP response for calling client");
         }
     }
-    
+
+    private void addSoapAttachments(MimeMessage response, Message replyMessage) {
+        if (replyMessage instanceof com.consol.citrus.ws.message.SoapMessage) {
+            List<SoapAttachment> soapAttachments = ((com.consol.citrus.ws.message.SoapMessage) replyMessage).getAttachments();
+            soapAttachments.stream()
+                    .filter(soapAttachment -> !soapAttachment.isMtomInline())
+                    .forEach(soapAttachment -> {
+                        String contentId = soapAttachment.getContentId();
+
+                        if (!contentId.startsWith("<")) {
+                            contentId = "<" + contentId + ">";
+                        }
+                        response.addAttachment(contentId, soapAttachment.getDataHandler());
+                    });
+        }
+    }
+
     /**
      * If Http status code is set on reply message headers simulate Http error with status code.
      * No SOAP response is sent back in this case.
@@ -313,7 +332,7 @@ public class WebServiceEndpoint implements MessageEndpoint {
      */
     private QName getDefaultQName(String localPart) {
         if (StringUtils.hasText(defaultNamespaceUri)) {
-            return QNameUtils.createQName(defaultNamespaceUri, localPart, defaultPrefix);
+            return new QName(defaultNamespaceUri, localPart, defaultPrefix);
         } else {
             throw new SoapHeaderException("Failed to add SOAP header '" + localPart + "', " +
             		"because neither valid QName nor default namespace-uri is set!");

@@ -89,6 +89,11 @@ public class CitrusJUnit4Runner extends SpringJUnit4ClassRunner {
                             Resource[] fileResources = new PathMatchingResourcePatternResolver().getResources(packageScan.replace('.', File.separatorChar) + fileNamePattern);
                             for (Resource fileResource : fileResources) {
                                 String filePath = fileResource.getFile().getParentFile().getCanonicalPath();
+
+                                if (packageScan.startsWith("file:")) {
+                                    filePath = "file:" + filePath;
+                                }
+
                                 filePath = filePath.substring(filePath.indexOf(packageScan.replace('.', File.separatorChar)));
 
                                 interceptedMethods.add(new CitrusFrameworkMethod(method.getMethod(),
@@ -96,7 +101,7 @@ public class CitrusJUnit4Runner extends SpringJUnit4ClassRunner {
                                         filePath));
                             }
                         }
-                    } catch (IOException e) {
+                    } catch (RuntimeException | IOException e) {
                         log.error("Unable to locate file resources for test package '" + packageScan + "'", e);
                     }
                 }

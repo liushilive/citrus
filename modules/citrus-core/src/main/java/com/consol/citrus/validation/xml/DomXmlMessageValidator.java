@@ -82,9 +82,9 @@ public class DomXmlMessageValidator extends AbstractMessageValidator<XmlMessageV
     private TransformerFactory transformerFactory = TransformerFactory.newInstance();
 
     @Override
-    public void validateMessagePayload(Message receivedMessage, Message controlMessage,
-                                       XmlMessageValidationContext validationContext, TestContext context) throws ValidationException {
-        log.debug("Start XML message validation");
+    public void validateMessage(Message receivedMessage, Message controlMessage,
+                                TestContext context, XmlMessageValidationContext validationContext) throws ValidationException {
+        log.debug("Start XML message validation ...");
 
         try {
             if (validationContext.isSchemaValidationEnabled()) {
@@ -108,11 +108,7 @@ public class DomXmlMessageValidator extends AbstractMessageValidator<XmlMessageV
             }
 
             log.info("XML message validation successful: All values OK");
-        } catch (ClassCastException e) {
-            throw new CitrusRuntimeException(e);
-        } catch (DOMException e) {
-            throw new CitrusRuntimeException(e);
-        } catch (LSException e) {
+        } catch (ClassCastException | DOMException | LSException e) {
             throw new CitrusRuntimeException(e);
         } catch (IllegalArgumentException e) {
             log.error("Failed to validate:\n" + XMLUtils.prettyPrint(receivedMessage.getPayload(String.class)));
@@ -221,7 +217,7 @@ public class DomXmlMessageValidator extends AbstractMessageValidator<XmlMessageV
                 // Report all parsing errors
                 log.debug("Found " + results.length + " schema validation errors");
                 StringBuilder errors = new StringBuilder();
-                for(SAXParseException e : results) {
+                for (SAXParseException e : results) {
                     errors.append(e.toString());
                     errors.append("\n");
                 }
@@ -230,8 +226,6 @@ public class DomXmlMessageValidator extends AbstractMessageValidator<XmlMessageV
                 throw new ValidationException("XML schema validation failed:", results[0]);
             }
         } catch (IOException e) {
-            throw new CitrusRuntimeException(e);
-        } catch (SAXException e) {
             throw new CitrusRuntimeException(e);
         }
     }
@@ -728,7 +722,20 @@ public class DomXmlMessageValidator extends AbstractMessageValidator<XmlMessageV
 
     @Override
     public boolean supportsMessageType(String messageType, Message message) {
-        return messageType.equalsIgnoreCase(MessageType.XML.toString());
+        if (!messageType.equalsIgnoreCase(MessageType.XML.name())) {
+            return false;
+        }
+
+        if (!(message.getPayload() instanceof String)) {
+            return false;
+        }
+
+        if (StringUtils.hasText(message.getPayload(String.class)) &&
+                !message.getPayload(String.class).trim().startsWith("<")) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

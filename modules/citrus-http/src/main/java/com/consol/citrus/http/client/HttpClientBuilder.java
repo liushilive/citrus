@@ -25,6 +25,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.integration.http.support.DefaultHttpHeaderMapper;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -125,6 +126,26 @@ public class HttpClientBuilder extends AbstractEndpointBuilder<HttpClient> {
     }
 
     /**
+     * Sets the default accept header.
+     * @param flag
+     * @return
+     */
+    public HttpClientBuilder defaultAcceptHeader(boolean flag) {
+        endpoint.getEndpointConfiguration().setDefaultAcceptHeader(flag);
+        return this;
+    }
+
+    /**
+     * Sets the handleCookies property.
+     * @param flag
+     * @return
+     */
+    public HttpClientBuilder handleCookies(boolean flag) {
+        endpoint.getEndpointConfiguration().setHandleCookies(flag);
+        return this;
+    }
+
+    /**
      * Sets the content type.
      * @param contentType
      * @return
@@ -151,6 +172,16 @@ public class HttpClientBuilder extends AbstractEndpointBuilder<HttpClient> {
      */
     public HttpClientBuilder errorHandlingStrategy(ErrorHandlingStrategy errorStrategy) {
         endpoint.getEndpointConfiguration().setErrorHandlingStrategy(errorStrategy);
+        return this;
+    }
+
+    /**
+     * Sets the error handler.
+     * @param errorHandler
+     * @return
+     */
+    public HttpClientBuilder errorHandler(ResponseErrorHandler errorHandler) {
+        endpoint.getEndpointConfiguration().setErrorHandler(errorHandler);
         return this;
     }
 

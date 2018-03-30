@@ -21,12 +21,9 @@ import com.consol.citrus.actions.SendMessageAction;
 import com.consol.citrus.container.SequenceAfterTest;
 import com.consol.citrus.container.SequenceBeforeTest;
 import com.consol.citrus.dsl.actions.DelegatingTestAction;
-import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.message.DefaultMessage;
-import com.consol.citrus.message.MessageType;
 import com.consol.citrus.report.TestActionListeners;
 import com.consol.citrus.testng.AbstractTestNGUnitTest;
-import com.consol.citrus.validation.builder.PayloadTemplateMessageBuilder;
 import com.consol.citrus.validation.builder.StaticMessageContentBuilder;
 import com.consol.citrus.ws.actions.SendSoapMessageAction;
 import com.consol.citrus.ws.client.WebServiceClient;
@@ -43,7 +40,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Christoph Deppisch
@@ -147,37 +145,6 @@ public class SendSoapMessageTestDesignerTest extends AbstractTestNGUnitTest {
     }
 
     @Test
-    public void testSoapActionDeprecated() {
-        MockTestDesigner builder = new MockTestDesigner(applicationContext, context) {
-            @Override
-            public void configure() {
-                send(soapClient)
-                        .soap()
-                        .soapAction("TestService/sayHello")
-                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>");
-            }
-        };
-
-        builder.configure();
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), DelegatingTestAction.class);
-        Assert.assertEquals(((DelegatingTestAction)test.getActions().get(0)).getDelegate().getClass(), SendSoapMessageAction.class);
-
-        SendSoapMessageAction action = (SendSoapMessageAction) ((DelegatingTestAction)test.getActions().get(0)).getDelegate();
-        Assert.assertEquals(action.getName(), "send");
-
-        Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), PayloadTemplateMessageBuilder.class);
-
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 1L);
-        Assert.assertEquals(messageBuilder.getMessageHeaders().get(SoapMessageHeaders.SOAP_ACTION), "TestService/sayHello");
-    }
-    
-    @Test
     public void testSoapAttachment() {
         MockTestDesigner builder = new MockTestDesigner(applicationContext, context) {
             @Override
@@ -213,6 +180,46 @@ public class SendSoapMessageTestDesignerTest extends AbstractTestNGUnitTest {
         Assert.assertEquals(action.getAttachments().get(0).getContentType(), testAttachment.getContentType());
         Assert.assertEquals(action.getAttachments().get(0).getCharsetName(), testAttachment.getCharsetName());
     }
+    
+    @Test
+    public void testMtomSoapAttachment() {
+        MockTestDesigner builder = new MockTestDesigner(applicationContext, context) {
+            @Override
+            public void configure() {
+                soap().client(soapClient)
+                    .send()
+                    .mtomEnabled(true)
+                    .payload("<TestRequest><data>cid:attachment01</data></TestRequest>")
+                    .attachment(testAttachment);
+            }
+        };
+
+        builder.configure();
+
+        TestCase test = builder.getTestCase();
+        Assert.assertEquals(test.getActionCount(), 1);
+        Assert.assertEquals(test.getActions().get(0).getClass(), DelegatingTestAction.class);
+        Assert.assertEquals(((DelegatingTestAction)test.getActions().get(0)).getDelegate().getClass(), SendSoapMessageAction.class);
+        
+        SendSoapMessageAction action = (SendSoapMessageAction) ((DelegatingTestAction)test.getActions().get(0)).getDelegate();
+        Assert.assertEquals(action.getName(), "send");
+        
+        Assert.assertEquals(action.getEndpoint(), soapClient);
+        Assert.assertEquals(action.getMessageBuilder().getClass(), StaticMessageContentBuilder.class);
+
+        StaticMessageContentBuilder messageBuilder = (StaticMessageContentBuilder) action.getMessageBuilder();
+        Assert.assertEquals(messageBuilder.getMessage().getPayload(), "<TestRequest><data>cid:attachment01</data></TestRequest>");
+        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 0L);
+
+        Assert.assertTrue(action.getMtomEnabled());
+        
+        Assert.assertEquals(action.getAttachments().size(), 1L);
+        Assert.assertNull(action.getAttachments().get(0).getContentResourcePath());
+        Assert.assertEquals(action.getAttachments().get(0).getContent(), testAttachment.getContent());
+        Assert.assertEquals(action.getAttachments().get(0).getContentId(), testAttachment.getContentId());
+        Assert.assertEquals(action.getAttachments().get(0).getContentType(), testAttachment.getContentType());
+        Assert.assertEquals(action.getAttachments().get(0).getCharsetName(), testAttachment.getCharsetName());
+    }    
     
     @Test
     public void testSoapAttachmentData() {
@@ -374,79 +381,4 @@ public class SendSoapMessageTestDesignerTest extends AbstractTestNGUnitTest {
         Assert.assertEquals(action.getEndpointUri(), "otherClient");
     }
 
-    @Test
-    public void testSendBuilderWithEndpointNameDeprecated() {
-        reset(applicationContextMock);
-        when(applicationContextMock.getBean(TestActionListeners.class)).thenReturn(new TestActionListeners());
-        when(applicationContextMock.getBeansOfType(SequenceBeforeTest.class)).thenReturn(new HashMap<String, SequenceBeforeTest>());
-        when(applicationContextMock.getBeansOfType(SequenceAfterTest.class)).thenReturn(new HashMap<String, SequenceAfterTest>());
-        MockTestDesigner builder = new MockTestDesigner(applicationContextMock, context) {
-            @Override
-            public void configure() {
-                send("soapClient")
-                    .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                    .header("operation", "soapOperation")
-                    .soap()
-                    .attachment(testAttachment);
-
-                send("otherClient")
-                    .payload("<TestRequest><Message>Hello World!</Message></TestRequest>");
-            }
-        };
-
-        builder.configure();
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 2);
-        Assert.assertEquals(test.getActions().get(0).getClass(), DelegatingTestAction.class);
-        Assert.assertEquals(((DelegatingTestAction)test.getActions().get(0)).getDelegate().getClass(), SendSoapMessageAction.class);
-        Assert.assertEquals(test.getActions().get(1).getClass(), DelegatingTestAction.class);
-        Assert.assertEquals(((DelegatingTestAction)test.getActions().get(1)).getDelegate().getClass(), SendMessageAction.class);
-
-        SendMessageAction action = (SendSoapMessageAction) ((DelegatingTestAction)test.getActions().get(0)).getDelegate();
-        Assert.assertEquals(action.getName(), "send");
-        Assert.assertEquals(action.getEndpointUri(), "soapClient");
-
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 1L);
-        Assert.assertTrue(messageBuilder.getMessageHeaders().containsKey("operation"));
-
-        action = (SendMessageAction) ((DelegatingTestAction)test.getActions().get(1)).getDelegate();
-        Assert.assertEquals(action.getName(), "send");
-        Assert.assertEquals(action.getEndpointUri(), "otherClient");
-    }
-
-    @Test(expectedExceptions = CitrusRuntimeException.class,
-          expectedExceptionsMessageRegExp = "Invalid use of http and soap action builder")
-    public void testSendBuilderWithSoapAndHttpMixed() {
-        reset(applicationContextMock);
-        when(applicationContextMock.getBean(TestActionListeners.class)).thenReturn(new TestActionListeners());
-        when(applicationContextMock.getBeansOfType(SequenceBeforeTest.class)).thenReturn(new HashMap<String, SequenceBeforeTest>());
-        when(applicationContextMock.getBeansOfType(SequenceAfterTest.class)).thenReturn(new HashMap<String, SequenceAfterTest>());
-        MockTestDesigner builder = new MockTestDesigner(applicationContextMock, context) {
-            @Override
-            public void configure() {
-                send("soapClient")
-                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                        .header("operation", "soapOperation")
-                        .soap()
-                        .attachment(testAttachment)
-                        .http();
-            }
-        };
-
-        builder.configure();
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendMessageAction.class);
-
-        SendMessageAction action = ((SendMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-        Assert.assertEquals(action.getEndpointUri(), "soapClient");
-        Assert.assertEquals(action.getMessageType(), MessageType.XML.name());
-
-    }
-    
 }

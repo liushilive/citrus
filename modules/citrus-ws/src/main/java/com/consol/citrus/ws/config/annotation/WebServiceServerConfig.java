@@ -119,6 +119,12 @@ public @interface WebServiceServerConfig {
     String endpointAdapter() default "";
 
     /**
+     * Debug logging enabled.
+     * @return
+     */
+    boolean debugLogging() default false;
+
+    /**
      * Interceptor references.
      * @return
      */
@@ -153,6 +159,12 @@ public @interface WebServiceServerConfig {
      * @return
      */
     boolean handleMimeHeaders() default false;
+
+    /**
+     * Handle attribute headers.
+     * @return
+     */
+    boolean handleAttributeHeaders() default false;
 
     /**
      * Keep SOAP envelope.

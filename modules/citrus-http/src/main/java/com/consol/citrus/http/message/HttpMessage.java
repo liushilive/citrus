@@ -24,13 +24,18 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 
-import java.util.Map;
+import javax.servlet.http.Cookie;
+import java.io.*;
+import java.util.*;
 
 /**
  * @author Christoph Deppisch
  * @since 2.0
  */
 public class HttpMessage extends DefaultMessage {
+
+    /** Http cookies */
+    private List<Cookie> cookies = new ArrayList<>();
 
     /**
      * Empty constructor initializing with empty message payload.
@@ -45,6 +50,7 @@ public class HttpMessage extends DefaultMessage {
      */
     public HttpMessage(Message message) {
         super(message);
+        copyCookies(message);
     }
 
     /**
@@ -62,6 +68,16 @@ public class HttpMessage extends DefaultMessage {
      */
     public HttpMessage(Object payload, Map<String, Object> headers) {
         super(payload, headers);
+    }
+
+    /**
+     * Sets the cookies extracted from the given message as far as it is a HttpMessage
+     * @param message the message to extract the cookies from
+     */
+    private void copyCookies(Message message) {
+        if (message instanceof HttpMessage) {
+            this.cookies.addAll(((HttpMessage) message).getCookies());
+        }
     }
 
     /**
@@ -87,7 +103,7 @@ public class HttpMessage extends DefaultMessage {
      * @param statusCode
      */
     public HttpMessage status(HttpStatus statusCode) {
-        statusCode(Integer.valueOf(statusCode.value()));
+        statusCode(statusCode.value());
         reasonPhrase(statusCode.name());
         return this;
     }
@@ -160,6 +176,14 @@ public class HttpMessage extends DefaultMessage {
     /**
      * Sets a new Http request query param.
      * @param name
+     */
+    public HttpMessage queryParam(String name) {
+        return queryParam(name, null);
+    }
+
+    /**
+     * Sets a new Http request query param.
+     * @param name
      * @param value
      */
     public HttpMessage queryParam(String name, String value) {
@@ -170,9 +194,9 @@ public class HttpMessage extends DefaultMessage {
         String queryParams;
         if (getHeader(HttpMessageHeaders.HTTP_QUERY_PARAMS) != null) {
             queryParams = getHeader(HttpMessageHeaders.HTTP_QUERY_PARAMS).toString();
-            queryParams += "," + name + "=" + value;
+            queryParams += "," + name + (StringUtils.hasText(value) ? "=" + value : "");
         } else {
-            queryParams = name + "=" + value;
+            queryParams = name + (StringUtils.hasText(value) ? "=" + value : "");
         }
 
         header(HttpMessageHeaders.HTTP_QUERY_PARAMS, queryParams);
@@ -324,4 +348,164 @@ public class HttpMessage extends DefaultMessage {
         return null;
     }
 
+    /**
+     * Gets the cookies.
+     *
+     * @return
+     */
+    public List<Cookie> getCookies() {
+        return cookies;
+    }
+
+    /**
+     * Sets the cookies.
+     *
+     * @param cookies
+     */
+    public void setCookies(Cookie[] cookies) {
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                cookie(cookie);
+            }
+        }
+    }
+
+    /**
+     * Adds new cookie to this http message.
+     * @param cookie
+     * @return
+     */
+    public HttpMessage cookie(Cookie cookie) {
+        this.cookies.add(cookie);
+
+        setHeader(HttpMessageHeaders.HTTP_COOKIE_PREFIX + cookie.getName(), getCookieString(cookie));
+
+        return this;
+    }
+
+    private String getCookieString(Cookie cookie) {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append(cookie.getName());
+        builder.append("=");
+        builder.append(cookie.getValue());
+
+        if (cookie.getVersion() > 0) {
+            builder.append(";Version=").append(cookie.getVersion());
+        }
+
+        if (StringUtils.hasText(cookie.getPath())) {
+            builder.append(";Path=").append(cookie.getPath());
+        }
+
+        if (StringUtils.hasText(cookie.getDomain())) {
+            builder.append(";Domain=").append(cookie.getDomain());
+        }
+
+        if (cookie.getMaxAge() > 0) {
+            builder.append(";Max-Age=").append(cookie.getMaxAge());
+        }
+
+        if (StringUtils.hasText(cookie.getComment())) {
+            builder.append(";Comment=").append(cookie.getComment());
+        }
+
+        if (cookie.getSecure()) {
+            builder.append(";Secure=").append(cookie.getSecure());
+        }
+
+        return builder.toString();
+    }
+
+    /**
+     * Reads request from complete request dump.
+     * @param requestData
+     * @return
+     */
+    public static HttpMessage fromRequestData(String requestData) {
+        try (BufferedReader reader = new BufferedReader(new StringReader(requestData))) {
+            HttpMessage request = new HttpMessage();
+
+            String[] requestLine = reader.readLine().split("\\s");
+            if (requestLine.length > 0) {
+                request.method(HttpMethod.valueOf(requestLine[0]));
+            }
+
+            if (requestLine.length > 1) {
+                request.uri(requestLine[1]);
+            }
+
+            if (requestLine.length > 2) {
+                request.version(requestLine[2]);
+            }
+
+            String line = reader.readLine();
+            while (StringUtils.hasText(line)) {
+                if (!line.contains(":")) {
+                    throw new CitrusRuntimeException(String.format("Invalid header syntax in line - expected 'key:value' but was '%s'", line));
+                }
+
+                String[] keyValue = line.split(":");
+                request.setHeader(keyValue[0].trim(), keyValue[1].trim());
+                line = reader.readLine();
+            }
+
+            StringBuilder bodyBuilder = new StringBuilder();
+            line = reader.readLine();
+            while (StringUtils.hasText(line)) {
+                bodyBuilder.append(line).append(System.getProperty("line.separator"));
+                line = reader.readLine();
+            }
+
+            request.setPayload(bodyBuilder.toString().trim());
+
+            return request;
+        } catch (IOException e) {
+            throw new CitrusRuntimeException("Failed to parse Http raw request data", e);
+        }
+    }
+
+    /**
+     * Reads response from complete response dump.
+     * @param responseData
+     * @return
+     */
+    public static HttpMessage fromResponseData(String responseData) {
+        try (BufferedReader reader = new BufferedReader(new StringReader(responseData))) {
+            HttpMessage response = new HttpMessage();
+
+            String[] statusLine = reader.readLine().split("\\s");
+            if (statusLine.length > 0) {
+                response.version(statusLine[0]);
+            }
+
+            if (statusLine.length > 1) {
+                response.status(HttpStatus.valueOf(Integer.valueOf(statusLine[1])));
+            }
+
+            String line = reader.readLine();
+            while (StringUtils.hasText(line)) {
+                if (!line.contains(":")) {
+                    throw new CitrusRuntimeException(String.format("Invalid header syntax in line - expected 'key:value' but was '%s'", line));
+                }
+
+                String[] keyValue = line.split(":");
+                response.setHeader(keyValue[0].trim(), keyValue[1].trim());
+                line = reader.readLine();
+            }
+
+            StringBuilder bodyBuilder = new StringBuilder();
+            line = reader.readLine();
+            while (StringUtils.hasText(line)) {
+                bodyBuilder.append(line).append(System.getProperty("line.separator"));
+                line = reader.readLine();
+            }
+
+            response.setPayload(bodyBuilder.toString().trim());
+
+            return response;
+        } catch (IOException e) {
+            throw new CitrusRuntimeException("Failed to parse Http raw response data", e);
+        }
+    }
 }

@@ -5,7 +5,7 @@
   <groupId>com.consol.citrus</groupId>
   <artifactId>citrus</artifactId>
   <packaging>pom</packaging>
-  <version>2.7-SNAPSHOT</version>
+  <version>2.7.5-SNAPSHOT</version>
   <name>citrus</name>
   <description>Citrus Test Framework</description>
   <url>http://www.citrusframework.org</url>
@@ -36,6 +36,7 @@
   <modules>
     <module>modules/citrus-model</module>
     <module>modules/citrus-core</module>
+    <module>modules/citrus-jdbc</module>
     <module>modules/citrus-jms</module>
     <module>modules/citrus-http</module>
     <module>modules/citrus-websocket</module>
@@ -46,14 +47,18 @@
     <module>modules/citrus-camel</module>
     <module>modules/citrus-vertx</module>
     <module>modules/citrus-docker</module>
+    <module>modules/citrus-kubernetes</module>
     <module>modules/citrus-rmi</module>
     <module>modules/citrus-jmx</module>
     <module>modules/citrus-restdocs</module>
-    <module>modules/citrus-cucumber</module>
     <module>modules/citrus-zookeeper</module>
-    <module>modules/citrus-arquillian</module>
+    <module>modules/citrus-selenium</module>
     <module>modules/citrus-java-dsl</module>
+    <module>modules/citrus-cucumber</module>
+    <module>modules/citrus-arquillian</module>
     <module>modules/citrus-integration</module>
+    <module>modules/citrus-bom</module>
+    <module>tools</module>
   </modules>
 
   <developers>
@@ -61,7 +66,7 @@
       <id>christophd</id>
       <name>Christoph Deppisch</name>
       <email>citrus-dev-l@consol.de</email>
-      <organization>ConSol* Software GmbH</organization>
+      <organization>ConSol Software GmbH</organization>
       <organizationUrl>http://www.consol.de/</organizationUrl>
       <roles>
         <role>Developer</role>
@@ -71,7 +76,7 @@
       <id>cwied</id>
       <name>Christian Wied</name>
       <email>citrus-dev-l@consol.de</email>
-      <organization>ConSol* Software GmbH</organization>
+      <organization>ConSol Software GmbH</organization>
       <organizationUrl>http://www.consol.de/</organizationUrl>
       <roles>
         <role>Developer</role>
@@ -81,7 +86,7 @@
       <id>philkom</id>
       <name>Philipp Komninos</name>
       <email>citrus-dev-l@consol.de</email>
-      <organization>ConSol* Software GmbH</organization>
+      <organization>ConSol Software GmbH</organization>
       <organizationUrl>http://www.consol.de/</organizationUrl>
       <roles>
         <role>Developer</role>
@@ -91,7 +96,7 @@
       <id>jblipphaus</id>
       <name>Jan Lipphaus</name>
       <email>citrus-dev-l@consol.de</email>
-      <organization>ConSol* Software GmbH</organization>
+      <organization>ConSol Software GmbH</organization>
       <organizationUrl>http://www.consol.de/</organizationUrl>
       <roles>
         <role>Developer</role>
@@ -101,7 +106,7 @@
       <id>jza</id>
       <name>Jan Zahalka</name>
       <email>citrus-dev-l@consol.de</email>
-      <organization>ConSol* Software GmbH</organization>
+      <organization>ConSol Software GmbH</organization>
       <organizationUrl>http://www.consol.de/</organizationUrl>
       <roles>
         <role>Developer</role>
@@ -111,7 +116,7 @@
       <id>maherma</id>
       <name>Martin Maher</name>
       <email>citrus-dev-l@consol.de</email>
-      <organization>ConSol* Software GmbH</organization>
+      <organization>ConSol Software GmbH</organization>
       <organizationUrl>http://www.consol.de/</organizationUrl>
       <roles>
         <role>Developer</role>
@@ -121,17 +126,13 @@
       <id>movchin</id>
       <name>Michael Movchin</name>
       <email>citrus-dev-l@consol.de</email>
-      <organization>ConSol* Software GmbH</organization>
+      <organization>ConSol Software GmbH</organization>
       <organizationUrl>http://www.consol.de/</organizationUrl>
       <roles>
         <role>Web Developer</role>
       </roles>
     </developer>
   </developers>
-
-  <prerequisites>
-    <maven>3.1.0</maven>
-  </prerequisites>
 
   <scm>
     <connection>scm:git:git@github.com:christophd/citrus.git</connection>
@@ -140,13 +141,13 @@
   </scm>
 
   <organization>
-    <name>ConSol* Consulting&amp;Solutions GmbH</name>
+    <name>ConSol Software GmbH</name>
     <url>http://www.consol.com/</url>
   </organization>
   
   <mailingLists>
     <mailingList>
-      <name>Project Announcments</name>
+      <name>Project Announcements</name>
     </mailingList>
     <mailingList>
       <name>Project Development List</name>
@@ -165,23 +166,27 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <spring.version>4.3.3.RELEASE</spring.version>
-    <spring.ws.version>2.3.0.RELEASE</spring.ws.version>
-    <spring.integration.version>4.3.2.RELEASE</spring.integration.version>
-    <spring.restdocs.version>1.1.2.RELEASE</spring.restdocs.version>
-    <apache.camel.version>2.17.3</apache.camel.version>
-    <activemq.version>5.14.0</activemq.version>
+    <spring.version>4.3.14.RELEASE</spring.version>
+    <spring.ws.version>2.4.2.RELEASE</spring.ws.version>
+    <spring.integration.version>4.3.14.RELEASE</spring.integration.version>
+    <spring.restdocs.version>1.2.3.RELEASE</spring.restdocs.version>
+    <apache.camel.version>2.20.1</apache.camel.version>
+    <activemq.version>5.15.2</activemq.version>
     <vertx.version>3.3.3</vertx.version>
-    <groovy.version>2.4.7</groovy.version>
-    <jetty.version>9.3.11.v20160721</jetty.version>
-    <testng.version>6.9.10</testng.version>
-    <slf4j.version>1.7.21</slf4j.version>
+    <groovy.version>2.4.13</groovy.version>
+    <jetty.version>9.4.8.v20171121</jetty.version>
+    <testng.version>6.11</testng.version>
+    <junit.version>4.12</junit.version>
+    <junit.jupiter.version>5.0.3</junit.jupiter.version>
+    <junit.platform.version>1.0.3</junit.platform.version>
+    <slf4j.version>1.7.25</slf4j.version>
     <jaxb.version>2.2.11</jaxb.version>
-    <jackson.version>2.8.3</jackson.version>
-    <arquillian.version>1.1.11.Final</arquillian.version>
-    <cucumber.version>1.2.5</cucumber.version>
-    <zookeeper.version>3.4.8</zookeeper.version>
-    <javadoc.options>-Xdoclint:none</javadoc.options>
+    <jackson.version>2.9.4</jackson.version>
+    <arquillian.version>1.1.15.Final</arquillian.version>
+    <cucumber.version>2.3.1</cucumber.version>
+    <zookeeper.version>3.4.10</zookeeper.version>
+    <json.schema.validator.version>2.2.8</json.schema.validator.version>
+    <citrus.db.version>0.1.0</citrus.db.version>
 
     <skip.integration.tests>false</skip.integration.tests>
     <skip.unit.tests>false</skip.unit.tests>
@@ -206,9 +211,9 @@
         <version>2.7.2</version>
       </dependency>
       <dependency>
-          <groupId>javax.jms</groupId>
-          <artifactId>com.springsource.javax.jms</artifactId>
-          <version>1.1.0</version>
+        <groupId>javax.jms</groupId>
+        <artifactId>com.springsource.javax.jms</artifactId>
+        <version>1.1.0</version>
       </dependency>
       <dependency>
         <groupId>javax.activation</groupId>
@@ -218,7 +223,7 @@
       <dependency>
         <groupId>com.sun.xml.messaging.saaj</groupId>
         <artifactId>saaj-impl</artifactId>
-        <version>1.3.25</version>
+        <version>1.3.28</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.groovy</groupId>
@@ -243,12 +248,12 @@
       <dependency>
         <groupId>commons-cli</groupId>
         <artifactId>commons-cli</artifactId>
-        <version>1.3.1</version>
+        <version>1.4</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.10</version>
+        <version>1.11</version>
       </dependency>
       <dependency>
         <groupId>commons-lang</groupId>
@@ -258,27 +263,22 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.5</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpclient</artifactId>
-        <version>4.5.2</version>
+        <version>2.6</version>
       </dependency>
       <dependency>
         <groupId>org.apache.sshd</groupId>
         <artifactId>sshd-core</artifactId>
-        <version>1.2.0</version>
+        <version>1.3.0</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk15on</artifactId>
-        <version>1.55</version>
+        <version>1.57</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk15on</artifactId>
-        <version>1.55</version>
+        <version>1.57</version>
       </dependency>
       <dependency>
         <groupId>com.jcraft</groupId>
@@ -327,6 +327,11 @@
       </dependency>
       <dependency>
         <groupId>org.springframework</groupId>
+        <artifactId>spring-expression</artifactId>
+        <version>${spring.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework</groupId>
         <artifactId>spring-context-support</artifactId>
         <version>${spring.version}</version>
       </dependency>
@@ -338,6 +343,11 @@
       <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-jdbc</artifactId>
+        <version>${spring.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-tx</artifactId>
         <version>${spring.version}</version>
       </dependency>
       <dependency>
@@ -382,21 +392,6 @@
       </dependency>
       <dependency>
         <groupId>org.springframework.integration</groupId>
-        <artifactId>spring-integration-jms</artifactId>
-        <version>${spring.integration.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.integration</groupId>
-        <artifactId>spring-integration-xml</artifactId>
-        <version>${spring.integration.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.integration</groupId>
-        <artifactId>spring-integration-stream</artifactId>
-        <version>${spring.integration.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.integration</groupId>
         <artifactId>spring-integration-http</artifactId>
         <version>${spring.integration.version}</version>
       </dependency>
@@ -426,7 +421,12 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>${junit.jupiter.version}</version>
       </dependency>
 
       <dependency>
@@ -445,8 +445,33 @@
         <version>${jetty.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-api</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-common</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>websocket-client</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-annotations</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-util</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-io</artifactId>
         <version>${jetty.version}</version>
       </dependency>
       <dependency>
@@ -457,28 +482,27 @@
       <dependency>
         <groupId>net.minidev</groupId>
         <artifactId>json-smart</artifactId>
-        <version>2.2.1</version>
+        <version>2.3</version>
       </dependency>
       <dependency>
         <groupId>com.jayway.jsonpath</groupId>
         <artifactId>json-path</artifactId>
-        <version>2.2.0</version>
+        <version>2.4.0</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.apache.ant</groupId>
         <artifactId>ant</artifactId>
-        <version>1.9.7</version>
+        <version>1.10.1</version>
         <scope>provided</scope>
       </dependency>
 
       <!-- Citrus mail dependencies -->
       <dependency>
         <groupId>javax.mail</groupId>
-        <artifactId>mail</artifactId>
+        <artifactId>javax.mail-api</artifactId>
         <version>1.4.7</version>
       </dependency>
-
       <dependency>
         <groupId>org.subethamail</groupId>
         <artifactId>subethasmtp</artifactId>
@@ -496,6 +520,11 @@
         <artifactId>vertx-hazelcast</artifactId>
         <version>${vertx.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-codegen</artifactId>
+        <version>${vertx.version}</version>
+      </dependency>
 
       <!-- Citrus camel dependencies -->
       <dependency>
@@ -507,19 +536,24 @@
         <groupId>org.apache.camel</groupId>
         <artifactId>camel-spring</artifactId>
         <version>${apache.camel.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-expression</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <!-- Citrus ftp dependencies -->
       <dependency>
         <groupId>org.apache.ftpserver</groupId>
         <artifactId>ftpserver-core</artifactId>
-        <version>1.0.6</version>
+        <version>1.1.1</version>
       </dependency>
-
       <dependency>
         <groupId>commons-net</groupId>
         <artifactId>commons-net</artifactId>
-        <version>3.5</version>
+        <version>3.6</version>
       </dependency>
 
       <!-- Citrus arquillian dependencies -->
@@ -549,19 +583,41 @@
         <version>1.2.6</version>
       </dependency>
 
+      <!-- Citrus JDBC dependencies -->
+      <dependency>
+        <groupId>com.consol.citrus</groupId>
+        <artifactId>citrus-db-server</artifactId>
+        <version>${citrus.db.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.3</version>
+      </dependency>
+
       <!-- Cucumber -->
       <dependency>
-        <groupId>info.cukes</groupId>
+        <groupId>io.cucumber</groupId>
         <artifactId>cucumber-java</artifactId>
         <version>${cucumber.version}</version>
       </dependency>
       <dependency>
-        <groupId>info.cukes</groupId>
+        <groupId>io.cucumber</groupId>
         <artifactId>cucumber-spring</artifactId>
         <version>${cucumber.version}</version>
       </dependency>
       <dependency>
-        <groupId>info.cukes</groupId>
+        <groupId>io.cucumber</groupId>
         <artifactId>cucumber-junit</artifactId>
         <version>${cucumber.version}</version>
         <exclusions>
@@ -570,6 +626,60 @@
             <artifactId>junit</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+
+      <!-- Citrus Selenium dependencies -->
+      <dependency>
+        <groupId>org.seleniumhq.selenium</groupId>
+        <artifactId>selenium-java</artifactId>
+        <version>3.6.0</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-common</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-client</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-io</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-util</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.seleniumhq.selenium</groupId>
+        <artifactId>htmlunit-driver</artifactId>
+        <version>2.27</version>
+      </dependency>
+      <dependency>
+        <groupId>net.sourceforge.htmlunit</groupId>
+        <artifactId>htmlunit</artifactId>
+        <version>2.27</version>
+      </dependency>
+      <dependency>
+        <groupId>net.sourceforge.htmlunit</groupId>
+        <artifactId>htmlunit-core-js</artifactId>
+        <version>2.27</version>
+      </dependency>
+      <dependency>
+        <groupId>net.sourceforge.htmlunit</groupId>
+        <artifactId>neko-htmlunit</artifactId>
+        <version>2.27</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>23.0</version>
       </dependency>
 
       <!-- JaxB Bindings (API and implementation) -->
@@ -611,6 +721,13 @@
         <version>${jackson.version}</version>
       </dependency>
 
+      <!-- JSON validation -->
+      <dependency>
+        <groupId>com.github.java-json-tools</groupId>
+        <artifactId>json-schema-validator</artifactId>
+        <version>${json.schema.validator.version}</version>
+      </dependency>
+
       <!-- Logging -->
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -642,13 +759,23 @@
       <dependency>
         <groupId>com.github.docker-java</groupId>
         <artifactId>docker-java</artifactId>
-        <version>3.0.6</version>
+        <version>3.0.14</version>
         <exclusions>
           <exclusion>
             <groupId>org.slf4j</groupId>
             <artifactId>jcl-over-slf4j</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+          </exclusion>
         </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-client</artifactId>
+        <version>1.4.34</version>
       </dependency>
 
       <dependency>
@@ -669,39 +796,57 @@
 
       <!-- Test scoped dependencies -->
       <dependency>
+        <groupId>org.springframework.integration</groupId>
+        <artifactId>spring-integration-jms</artifactId>
+        <version>${spring.integration.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.integration</groupId>
+        <artifactId>spring-integration-xml</artifactId>
+        <version>${spring.integration.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.apache.activemq</groupId>
         <artifactId>activemq-broker</artifactId>
         <version>${activemq.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.activemq</groupId>
         <artifactId>activemq-spring</artifactId>
         <version>${activemq.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.thoughtworks.xstream</groupId>
         <artifactId>xstream</artifactId>
-        <version>1.4.9</version>
+        <version>1.4.10</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.xbean</groupId>
         <artifactId>xbean-spring</artifactId>
         <version>4.5</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
-        <version>2.3.4</version>
+        <version>2.4.0</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>commons-dbcp</groupId>
         <artifactId>commons-dbcp</artifactId>
         <version>1.4</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>1.10.19</version>
+        <version>2.13.0</version>
         <scope>test</scope>
       </dependency>
     </dependencies>
@@ -762,7 +907,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.5.1</version>
+          <version>3.7.0</version>
           <configuration>
             <encoding>${project.build.sourceEncoding}</encoding>
             <source>1.8</source>
@@ -771,16 +916,25 @@
         </plugin>
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>3.0.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
           <version>2.5.2</version>
         </plugin>
+        <plugin>
+          <artifactId>maven-changes-plugin</artifactId>
+          <version>2.12.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-plugin-plugin</artifactId>
+          <version>3.5</version>
+        </plugin>
 
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.19.1</version>
+          <version>2.20.1</version>
           <configuration>
             <systemProperties>
               <property>
@@ -806,7 +960,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.19.1</version>
+          <version>2.20.1</version>
           <executions>
             <execution>
               <id>integration-tests</id>
@@ -833,7 +987,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-war-plugin</artifactId>
-          <version>2.6</version>
+          <version>3.1.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-antrun-plugin</artifactId>
@@ -853,12 +1007,12 @@
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>2.10</version>
+          <version>3.0.2</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.5.1</version>
+          <version>3.6</version>
           <configuration>
             <inputDirectory>${project.build.directory}/site/_site</inputDirectory>
           </configuration>
@@ -902,7 +1056,7 @@
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>2.10.4</version>
           <configuration>
-            <additionalparam>${javadoc.options}</additionalparam>
+            <additionalparam>-Xdoclint:none</additionalparam>
           </configuration>
           <executions>
             <execution>
@@ -952,6 +1106,26 @@
         </plugin>
 
         <plugin>
+          <groupId>org.asciidoctor</groupId>
+          <artifactId>asciidoctor-maven-plugin</artifactId>
+          <version>1.5.6</version>
+          <inherited>false</inherited>
+          <configuration>
+            <sourceDirectory>src/manual</sourceDirectory>
+            <sourceDocumentName>index.adoc</sourceDocumentName>
+            <attributes>
+              <icons>font</icons>
+              <pagenums/>
+              <version>${project.version}</version>
+              <plugindir>${project.basedir}/plugin</plugindir>
+              <idprefix/>
+              <idseparator>-</idseparator>
+              <allow-uri-read>true</allow-uri-read>
+            </attributes>
+          </configuration>
+        </plugin>
+
+        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>jaxb2-maven-plugin</artifactId>
           <version>2.2</version>
@@ -959,7 +1133,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.12</version>
+          <version>3.0.0</version>
         </plugin>
 
         <plugin>
@@ -973,11 +1147,16 @@
           <artifactId>sonar-maven-plugin</artifactId>
           <version>3.0.2</version>
         </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.7.9</version>
+        </plugin>
 
         <plugin>
           <groupId>io.fabric8</groupId>
           <artifactId>docker-maven-plugin</artifactId>
-          <version>0.15.16</version>
+          <version>0.22.1</version>
           <configuration>
             <watchInterval>500</watchInterval>
             <logDate>default</logDate>
@@ -997,7 +1176,6 @@
                     </bind>
                   </volumes>
                   <wait>
-                    <log>Jekyll startup</log>
                     <http>
                       <url>http://localhost:4000</url>
                       <method>GET</method>
@@ -1173,6 +1351,71 @@
     </profile>
 
     <profile>
+      <id>docs-html</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctor-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>output-html</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>process-asciidoc</goal>
+                </goals>
+                <configuration>
+                  <sourceHighlighter>coderay</sourceHighlighter>
+                  <backend>html</backend>
+                  <sourceHighlighter>coderay</sourceHighlighter>
+                  <attributes>
+                    <toc>left</toc>
+                    <linkcss>false</linkcss>
+                  </attributes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>docs-pdf</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctor-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>output-pdf</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>process-asciidoc</goal>
+                </goals>
+                <configuration>
+                  <backend>pdf</backend>
+                  <sourceHighlighter>rouge</sourceHighlighter>
+                  <attributes>
+                    <toc/>
+                  </attributes>
+                </configuration>
+              </execution>
+            </executions>
+            <dependencies>
+              <dependency>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctorj-pdf</artifactId>
+                <version>1.5.0-alpha.11</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
       <id>release-docs</id>
       <build>
         <plugins>
@@ -1223,7 +1466,7 @@
             <artifactId>maven-resources-plugin</artifactId>
             <executions>
               <execution>
-                <id>copy-gitbook-sources</id>
+                <id>copy-docs-sources</id>
                 <phase>package</phase>
                 <goals>
                   <goal>copy-resources</goal>
@@ -1232,7 +1475,7 @@
                   <outputDirectory>${project.build.directory}/checkout</outputDirectory>
                   <resources>
                     <resource>
-                      <directory>${project.build.directory}/site/reference/html</directory>
+                      <directory>${project.build.directory}/generated-docs</directory>
                       <includes>
                         <include>**/**</include>
                       </includes>
@@ -1245,43 +1488,7 @@
         </plugins>
       </build>
     </profile>
-
-    <profile>
-      <id>docs</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.github.eirslett</groupId>
-            <artifactId>frontend-maven-plugin</artifactId>
-            <version>1.0</version>
-            <inherited>false</inherited>
-            <configuration>
-              <workingDirectory>src</workingDirectory>
-              <installDirectory>target</installDirectory>
-            </configuration>
-            <executions>
-              <execution>
-                <id>node-npm-setup</id>
-                <goals>
-                  <goal>install-node-and-npm</goal>
-                </goals>
-                <configuration>
-                  <nodeVersion>v5.9.1</nodeVersion>
-                  <npmVersion>3.8.5</npmVersion>
-                </configuration>
-              </execution>
-              <execution>
-                <id>npm-install</id>
-                <goals>
-                  <goal>npm</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
+    
     <profile>
       <id>site</id>
       <build>
@@ -1302,6 +1509,7 @@
               <include>_posts/**</include>
               <include>_includes/**</include>
               <include>help/**</include>
+              <include>projects/**</include>
               <include>index.html</include>
               <include>_config.yml</include>
               <include>latest_version.txt</include>
@@ -1338,11 +1546,50 @@
             <inherited>false</inherited>
             <executions>
               <execution>
+                <id>copy-generated-docs</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/reference/html</outputDirectory>
+                  <resources>          
+                    <resource>
+                      <directory>${project.build.directory}/generated-docs</directory>
+                      <includes>
+                        <include>**/**</include>
+                      </includes>
+                      <excludes>
+                        <exclude>index.pdf</exclude>
+                      </excludes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>copy-generated-docs-pdf</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/reference/pdf</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.directory}/generated-docs</directory>
+                      <includes>
+                        <include>index.pdf</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
                 <id>copy-citrus-core-config-schemas</id>
                 <phase>package</phase>
                 <configuration>
                   <outputDirectory>${project.build.directory}/site/_site/schema/config</outputDirectory>
-                  <resources>          
+                  <resources>
                     <resource>
                       <directory>modules/citrus-model/model-core/src/main/resources/com/consol/citrus/schema</directory>
                       <includes>
@@ -1365,6 +1612,42 @@
                       <directory>modules/citrus-model/model-core/src/main/resources/com/consol/citrus/schema</directory>
                       <includes>
                         <include>citrus-testcase*.xsd</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>copy-citrus-jdbc-config-schemas</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/schema/jdbc/config</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>modules/citrus-model/model-jdbc/src/main/resources/com/consol/citrus/schema</directory>
+                      <includes>
+                        <include>citrus-jdbc-config*.xsd</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>copy-citrus-jdbc-message-schemas</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/schema/jdbc/message</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>modules/citrus-model/model-jdbc/src/main/resources/com/consol/citrus/schema</directory>
+                      <includes>
+                        <include>citrus-jdbc-message*.xsd</include>
                       </includes>
                     </resource>
                   </resources>
@@ -1698,6 +1981,78 @@
                 </goals>
               </execution>
               <execution>
+                <id>copy-citrus-kubernetes-schemas</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/schema/kubernetes/config</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>modules/citrus-model/model-kubernetes/src/main/resources/com/consol/citrus/schema</directory>
+                      <includes>
+                        <include>citrus-kubernetes-config*.xsd</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>copy-citrus-kubernetes-test-schemas</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/schema/kubernetes/testcase</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>modules/citrus-model/model-kubernetes/src/main/resources/com/consol/citrus/schema</directory>
+                      <includes>
+                        <include>citrus-kubernetes-testcase*.xsd</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>copy-citrus-selenium-schemas</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/schema/selenium/config</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>modules/citrus-model/model-selenium/src/main/resources/com/consol/citrus/schema</directory>
+                      <includes>
+                        <include>citrus-selenium-config*.xsd</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>copy-citrus-selenium-test-schemas</id>
+                <phase>package</phase>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/site/_site/schema/selenium/testcase</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>modules/citrus-model/model-selenium/src/main/resources/com/consol/citrus/schema</directory>
+                      <includes>
+                        <include>citrus-selenium-testcase*.xsd</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+              </execution>
+              <execution>
                 <id>copy-citrus-cucumber-test-schemas</id>
                 <phase>package</phase>
                 <configuration>
@@ -1851,7 +2206,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-changes-plugin</artifactId>
-            <version>2.12</version>
             <reportSets>
               <reportSet>
                 <reports>
@@ -1876,7 +2230,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>2.10.3</version>
           </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -1899,7 +2252,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-plugin-plugin</artifactId>
-            <version>3.4</version>
           </plugin>
         </plugins>
       </reporting>
@@ -1962,7 +2314,6 @@
           <plugin>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.7.7.201606060606</version>
             <executions>
               <execution>
                 <id>jacoco-unit-init</id>

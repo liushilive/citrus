@@ -22,21 +22,17 @@ import com.consol.citrus.container.SequenceAfterTest;
 import com.consol.citrus.container.SequenceBeforeTest;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.dsl.actions.DelegatingTestAction;
-import com.consol.citrus.dsl.builder.*;
 import com.consol.citrus.endpoint.Endpoint;
-import com.consol.citrus.exceptions.CitrusRuntimeException;
-import com.consol.citrus.message.*;
+import com.consol.citrus.message.DefaultMessage;
+import com.consol.citrus.message.Message;
 import com.consol.citrus.messaging.Producer;
 import com.consol.citrus.report.TestActionListeners;
 import com.consol.citrus.testng.AbstractTestNGUnitTest;
-import com.consol.citrus.validation.builder.PayloadTemplateMessageBuilder;
 import com.consol.citrus.validation.builder.StaticMessageContentBuilder;
 import com.consol.citrus.ws.actions.SendSoapMessageAction;
 import com.consol.citrus.ws.client.WebServiceClient;
 import com.consol.citrus.ws.message.*;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 import org.testng.Assert;
@@ -77,36 +73,23 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
         reset(soapClient, messageProducer);
         when(soapClient.createProducer()).thenReturn(messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                Message message = (Message) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "Foo");
-                return null;
-            }
+        doAnswer(invocation -> {
+            Message message = (Message) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "Foo");
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client(soapClient)
-                                .send()
-                                .message(new DefaultMessage("Foo").setHeader("operation", "foo"))
-                                    .header("additional", "additionalValue");
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .message(new DefaultMessage("Foo").setHeader("operation", "foo"))
+                            .header("additional", "additionalValue"));
                 
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client(soapClient)
-                                .send()
-                                .message(new DefaultMessage("Foo").setHeader("operation", "foo"))
-                                .fork(true);
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .message(new DefaultMessage("Foo").setHeader("operation", "foo"))
+                        .fork(true));
             }
         };
 
@@ -139,97 +122,23 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
     }
 
     @Test
-    public void testForkDeprecated() {
-        reset(soapClient, messageProducer);
-        when(soapClient.createProducer()).thenReturn(messageProducer);
-        when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                Message message = (Message) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "Foo");
-                return null;
-            }
-        }).when(messageProducer).send(any(Message.class), any(TestContext.class));
-        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
-            @Override
-            public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint(soapClient)
-                                .soap()
-                                .message(new DefaultMessage("Foo").setHeader("operation", "foo"))
-                                    .header("additional", "additionalValue");
-                    }
-                });
-
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint(soapClient)
-                                .soap()
-                                .message(new DefaultMessage("Foo").setHeader("operation", "foo"))
-                                .fork(true);
-                    }
-                });
-            }
-        };
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 2);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
-        Assert.assertEquals(test.getActions().get(1).getClass(), SendSoapMessageAction.class);
-
-        SendSoapMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-
-        Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), StaticMessageContentBuilder.class);
-
-        StaticMessageContentBuilder messageBuilder = (StaticMessageContentBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getMessage().getPayload(String.class), "Foo");
-        Assert.assertEquals(messageBuilder.getMessage().getHeader("operation"), "foo");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 1L);
-        Assert.assertEquals(messageBuilder.getMessageHeaders().get("additional"), "additionalValue");
-
-        Assert.assertFalse(action.isForkMode());
-
-        action = ((SendSoapMessageAction)test.getActions().get(1));
-        Assert.assertEquals(action.getName(), "send");
-
-        Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), StaticMessageContentBuilder.class);
-
-        Assert.assertTrue(action.isForkMode());
-    }
-
-    @Test
     public void testSoapAction() {
         reset(soapClient, messageProducer);
         when(soapClient.createProducer()).thenReturn(messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getSoapAction(), "TestService/sayHello");
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+            Assert.assertEquals(message.getSoapAction(), "TestService/sayHello");
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client(soapClient)
-                                .send()
-                                .soapAction("TestService/sayHello")
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>");
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .soapAction("TestService/sayHello")
+                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>"));
             }
         };
 
@@ -250,78 +159,25 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
     }
 
     @Test
-    public void testSoapActionDeprecated() {
-        reset(soapClient, messageProducer);
-        when(soapClient.createProducer()).thenReturn(messageProducer);
-        when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getSoapAction(), "TestService/sayHello");
-                return null;
-            }
-        }).when(messageProducer).send(any(Message.class), any(TestContext.class));
-        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
-            @Override
-            public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint(soapClient)
-                                .soap()
-                                .soapAction("TestService/sayHello")
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>");
-                    }
-                });
-            }
-        };
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
-
-        SendSoapMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-
-        Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), PayloadTemplateMessageBuilder.class);
-
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 1L);
-        Assert.assertEquals(messageBuilder.getMessageHeaders().get(SoapMessageHeaders.SOAP_ACTION), "TestService/sayHello");
-    }
-    
-    @Test
     public void testSoapAttachment() {
         reset(soapClient, messageProducer);
         when(soapClient.createProducer()).thenReturn(messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+            Assert.assertEquals(message.getAttachments().size(), 1L);
+            Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
 
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client(soapClient)
-                                .send()
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .attachment(testAttachment);
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
+                        .attachment(testAttachment));
             }
         };
 
@@ -347,86 +203,25 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
         Assert.assertEquals(action.getAttachments().get(0).getCharsetName(), testAttachment.getCharsetName());
     }
 
-    @Test
-    public void testSoapAttachmentDeprecated() {
-        reset(soapClient, messageProducer);
-        when(soapClient.createProducer()).thenReturn(messageProducer);
-        when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
-                return null;
-            }
-        }).when(messageProducer).send(any(Message.class), any(TestContext.class));
-
-        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
-            @Override
-            public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint(soapClient)
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .soap()
-                                .attachment(testAttachment);
-                    }
-                });
-            }
-        };
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
-
-        SendSoapMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-
-        Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), PayloadTemplateMessageBuilder.class);
-
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 0L);
-
-        Assert.assertEquals(action.getAttachments().size(), 1L);
-        Assert.assertNull(action.getAttachments().get(0).getContentResourcePath());
-        Assert.assertEquals(action.getAttachments().get(0).getContent(), testAttachment.getContent());
-        Assert.assertEquals(action.getAttachments().get(0).getContentId(), testAttachment.getContentId());
-        Assert.assertEquals(action.getAttachments().get(0).getContentType(), testAttachment.getContentType());
-        Assert.assertEquals(action.getAttachments().get(0).getCharsetName(), testAttachment.getCharsetName());
-    }
-    
     @Test
     public void testSoapAttachmentData() {
         reset(soapClient, messageProducer);
         when(soapClient.createProducer()).thenReturn(messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+            Assert.assertEquals(message.getAttachments().size(), 1L);
+            Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client(soapClient)
-                                .send()
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .attachment(testAttachment.getContentId(), testAttachment.getContentType(), testAttachment.getContent());
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
+                        .attachment(testAttachment.getContentId(), testAttachment.getContentType(), testAttachment.getContent()));
             }
         };
 
@@ -453,48 +248,43 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
     }
 
     @Test
-    public void testSoapAttachmentDataDeprecated() {
+    public void testMtomSoapAttachmentData() {
         reset(soapClient, messageProducer);
         when(soapClient.createProducer()).thenReturn(messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><data><xop:Include xmlns:xop=\"http://www.w3.org/2004/08/xop/include\" href=\"cid:attachment01\"/></data></TestRequest>");
+            Assert.assertEquals(message.getAttachments().size(), 1L);
+            Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint(soapClient)
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .soap()
-                                .attachment(testAttachment.getContentId(), testAttachment.getContentType(), testAttachment.getContent());
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .mtomEnabled(true)
+                        .payload("<TestRequest><data>cid:attachment01</data></TestRequest>")
+                        .attachment(testAttachment.getContentId(), testAttachment.getContentType(), testAttachment.getContent()));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
+        Assert.assertEquals(((DelegatingTestAction)test.getActions().get(0)).getDelegate().getClass(), SendSoapMessageAction.class);
 
-        SendSoapMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
+        SendSoapMessageAction action = ((SendSoapMessageAction)((DelegatingTestAction)test.getActions().get(0)).getDelegate());
         Assert.assertEquals(action.getName(), "send");
 
         Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), PayloadTemplateMessageBuilder.class);
+        Assert.assertEquals(action.getMessageBuilder().getClass(), StaticMessageContentBuilder.class);
 
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+        StaticMessageContentBuilder messageBuilder = (StaticMessageContentBuilder) action.getMessageBuilder();
+        Assert.assertEquals(messageBuilder.getMessage().getPayload(), "<TestRequest><data>cid:attachment01</data></TestRequest>");
         Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 0L);
+
+        Assert.assertTrue(action.getMtomEnabled());
 
         Assert.assertEquals(action.getAttachments().size(), 1L);
         Assert.assertNull(action.getAttachments().get(0).getContentResourcePath());
@@ -508,31 +298,23 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
     public void testMultipleSoapAttachmentData() {
         reset(soapClient, messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 2L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent() + 1);
-                Assert.assertEquals(message.getAttachments().get(1).getContent(), testAttachment.getContent() + 2);
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+            Assert.assertEquals(message.getAttachments().size(), 2L);
+            Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent() + 1);
+            Assert.assertEquals(message.getAttachments().get(1).getContent(), testAttachment.getContent() + 2);
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
         when(soapClient.createProducer()).thenReturn(messageProducer);
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client(soapClient)
-                                .send()
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .attachment(testAttachment.getContentId() + 1, testAttachment.getContentType(), testAttachment.getContent() + 1)
-                                .attachment(testAttachment.getContentId() + 2, testAttachment.getContentType(), testAttachment.getContent() + 2);
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
+                        .attachment(testAttachment.getContentId() + 1, testAttachment.getContentType(), testAttachment.getContent() + 1)
+                        .attachment(testAttachment.getContentId() + 2, testAttachment.getContentType(), testAttachment.getContent() + 2));
             }
         };
 
@@ -563,94 +345,27 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
         Assert.assertEquals(action.getAttachments().get(1).getCharsetName(), testAttachment.getCharsetName());
     }
 
-    @Test
-    public void testMultipleSoapAttachmentDataDeprecated() {
-        reset(soapClient, messageProducer);
-        when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 2L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent() + 1);
-                Assert.assertEquals(message.getAttachments().get(1).getContent(), testAttachment.getContent() + 2);
-                return null;
-            }
-        }).when(messageProducer).send(any(Message.class), any(TestContext.class));
-        when(soapClient.createProducer()).thenReturn(messageProducer);
-        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
-            @Override
-            public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint(soapClient)
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .soap()
-                                .attachment(testAttachment.getContentId() + 1, testAttachment.getContentType(), testAttachment.getContent() + 1)
-                                .attachment(testAttachment.getContentId() + 2, testAttachment.getContentType(), testAttachment.getContent() + 2);
-                    }
-                });
-            }
-        };
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
-
-        SendSoapMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-
-        Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), PayloadTemplateMessageBuilder.class);
-
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 0L);
-
-        Assert.assertEquals(action.getAttachments().size(), 2L);
-        Assert.assertNull(action.getAttachments().get(0).getContentResourcePath());
-        Assert.assertEquals(action.getAttachments().get(0).getContent(), testAttachment.getContent() + 1);
-        Assert.assertEquals(action.getAttachments().get(0).getContentId(), testAttachment.getContentId() + 1);
-        Assert.assertEquals(action.getAttachments().get(0).getContentType(), testAttachment.getContentType());
-        Assert.assertEquals(action.getAttachments().get(0).getCharsetName(), testAttachment.getCharsetName());
-        Assert.assertNull(action.getAttachments().get(1).getContentResourcePath());
-        Assert.assertEquals(action.getAttachments().get(1).getContent(), testAttachment.getContent() + 2);
-        Assert.assertEquals(action.getAttachments().get(1).getContentId(), testAttachment.getContentId() + 2);
-        Assert.assertEquals(action.getAttachments().get(1).getContentType(), testAttachment.getContentType());
-        Assert.assertEquals(action.getAttachments().get(1).getCharsetName(), testAttachment.getCharsetName());
-    }
-    
     @Test
     public void testSoapAttachmentResource() throws IOException {
         reset(resource, soapClient, messageProducer);
         when(soapClient.createProducer()).thenReturn(messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), "someAttachmentData");
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+            Assert.assertEquals(message.getAttachments().size(), 1L);
+            Assert.assertEquals(message.getAttachments().get(0).getContent(), "someAttachmentData");
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
 
         when(resource.getInputStream()).thenReturn(new ByteArrayInputStream("someAttachmentData".getBytes()));
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client(soapClient)
-                                .send()
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .attachment(testAttachment.getContentId(), testAttachment.getContentType(), resource);
-                    }
-                });
+                soap(builder -> builder.client(soapClient)
+                        .send()
+                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
+                        .attachment(testAttachment.getContentId(), testAttachment.getContentType(), resource));
             }
         };
         
@@ -674,58 +389,6 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
         Assert.assertEquals(action.getAttachments().get(0).getCharsetName(), testAttachment.getCharsetName());
     }
 
-    @Test
-    public void testSoapAttachmentResourceDeprecated() throws IOException {
-        reset(resource, soapClient, messageProducer);
-        when(soapClient.createProducer()).thenReturn(messageProducer);
-        when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), "someAttachmentData");
-                return null;
-            }
-        }).when(messageProducer).send(any(Message.class), any(TestContext.class));
-
-        when(resource.getInputStream()).thenReturn(new ByteArrayInputStream("someAttachmentData".getBytes()));
-        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
-            @Override
-            public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint(soapClient)
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .soap()
-                                .attachment(testAttachment.getContentId(), testAttachment.getContentType(), resource);
-                    }
-                });
-            }
-        };
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
-
-        SendSoapMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-
-        Assert.assertEquals(action.getEndpoint(), soapClient);
-        Assert.assertEquals(action.getMessageBuilder().getClass(), PayloadTemplateMessageBuilder.class);
-
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 0L);
-
-        Assert.assertEquals(action.getAttachments().get(0).getContent(), "someAttachmentData");
-        Assert.assertEquals(action.getAttachments().get(0).getContentId(), testAttachment.getContentId());
-        Assert.assertEquals(action.getAttachments().get(0).getContentType(), testAttachment.getContentType());
-        Assert.assertEquals(action.getAttachments().get(0).getCharsetName(), testAttachment.getCharsetName());
-    }
-    
     @Test
     public void testSendBuilderWithEndpointName() {
         TestContext context = applicationContext.getBean(TestContext.class);
@@ -734,24 +397,18 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
         reset(applicationContextMock, soapClient, messageProducer);
         when(soapClient.createProducer()).thenReturn(messageProducer);
         when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+            Assert.assertEquals(message.getAttachments().size(), 1L);
+            Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                return null;
-            }
+        doAnswer(invocation -> {
+            SoapMessage message = (SoapMessage) invocation.getArguments()[0];
+            Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
+            return null;
         }).when(messageProducer).send(any(Message.class), any(TestContext.class));
 
         when(applicationContextMock.getBean(TestContext.class)).thenReturn(context);
@@ -763,25 +420,15 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContextMock, context) {
             @Override
             public void execute() {
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client("soapClient")
-                                .send()
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .header("operation", "soapOperation")
-                                .attachment(testAttachment);
-                    }
-                });
+                soap(builder -> builder.client("soapClient")
+                        .send()
+                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
+                        .header("operation", "soapOperation")
+                        .attachment(testAttachment));
 
-                soap(new BuilderSupport<SoapActionBuilder>() {
-                    @Override
-                    public void configure(SoapActionBuilder builder) {
-                        builder.client("otherClient")
-                                .send()
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>");
-                    }
-                });
+                soap(builder -> builder.client("otherClient")
+                        .send()
+                        .payload("<TestRequest><Message>Hello World!</Message></TestRequest>"));
             }
         };
 
@@ -804,117 +451,4 @@ public class SendSoapMessageTestRunnerTest extends AbstractTestNGUnitTest {
         Assert.assertEquals(action.getEndpointUri(), "otherClient");
     }
 
-    @Test
-    public void testSendBuilderWithEndpointNameDeprecated() {
-        TestContext context = applicationContext.getBean(TestContext.class);
-        context.setApplicationContext(applicationContextMock);
-
-        reset(applicationContextMock, soapClient, messageProducer);
-        when(soapClient.createProducer()).thenReturn(messageProducer);
-        when(soapClient.getActor()).thenReturn(null);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                Assert.assertEquals(message.getAttachments().size(), 1L);
-                Assert.assertEquals(message.getAttachments().get(0).getContent(), testAttachment.getContent());
-                return null;
-            }
-        }).when(messageProducer).send(any(Message.class), any(TestContext.class));
-
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                SoapMessage message = (SoapMessage) invocation.getArguments()[0];
-                Assert.assertEquals(message.getPayload(String.class), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-                return null;
-            }
-        }).when(messageProducer).send(any(Message.class), any(TestContext.class));
-
-        when(applicationContextMock.getBean(TestContext.class)).thenReturn(context);
-        when(applicationContextMock.getBean("soapClient", Endpoint.class)).thenReturn(soapClient);
-        when(applicationContextMock.getBean("otherClient", Endpoint.class)).thenReturn(soapClient);
-        when(applicationContextMock.getBean(TestActionListeners.class)).thenReturn(new TestActionListeners());
-        when(applicationContextMock.getBeansOfType(SequenceBeforeTest.class)).thenReturn(new HashMap<String, SequenceBeforeTest>());
-        when(applicationContextMock.getBeansOfType(SequenceAfterTest.class)).thenReturn(new HashMap<String, SequenceAfterTest>());
-        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContextMock, context) {
-            @Override
-            public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint("soapClient")
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .header("operation", "soapOperation")
-                                .soap()
-                                .attachment(testAttachment);
-                    }
-                });
-
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint("otherClient")
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .soap();
-                    }
-                });
-            }
-        };
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 2);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
-        Assert.assertEquals(test.getActions().get(1).getClass(), SendSoapMessageAction.class);
-
-        SendMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-        Assert.assertEquals(action.getEndpointUri(), "soapClient");
-
-        PayloadTemplateMessageBuilder messageBuilder = (PayloadTemplateMessageBuilder) action.getMessageBuilder();
-        Assert.assertEquals(messageBuilder.getPayloadData(), "<TestRequest><Message>Hello World!</Message></TestRequest>");
-        Assert.assertEquals(messageBuilder.getMessageHeaders().size(), 1L);
-        Assert.assertTrue(messageBuilder.getMessageHeaders().containsKey("operation"));
-
-        action = ((SendSoapMessageAction)test.getActions().get(1));
-        Assert.assertEquals(action.getName(), "send");
-        Assert.assertEquals(action.getEndpointUri(), "otherClient");
-    }
-
-    @Test(expectedExceptions = CitrusRuntimeException.class,
-          expectedExceptionsMessageRegExp = "Invalid use of http and soap action builder")
-    public void testSendBuilderWithSoapAndHttpMixed() {
-        reset(applicationContextMock);
-        when(applicationContextMock.getBean(TestContext.class)).thenReturn(applicationContext.getBean(TestContext.class));
-        when(applicationContextMock.getBean(TestActionListeners.class)).thenReturn(new TestActionListeners());
-        when(applicationContextMock.getBeansOfType(SequenceBeforeTest.class)).thenReturn(new HashMap<String, SequenceBeforeTest>());
-        when(applicationContextMock.getBeansOfType(SequenceAfterTest.class)).thenReturn(new HashMap<String, SequenceAfterTest>());
-        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContextMock, context) {
-            @Override
-            public void execute() {
-                send(new BuilderSupport<SendMessageBuilder>() {
-                    @Override
-                    public void configure(SendMessageBuilder builder) {
-                        builder.endpoint("soapClient")
-                                .payload("<TestRequest><Message>Hello World!</Message></TestRequest>")
-                                .header("operation", "soapOperation")
-                                .soap()
-                                .attachment(testAttachment)
-                                .http();
-                    }
-                });
-            }
-        };
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), SendSoapMessageAction.class);
-
-        SendSoapMessageAction action = ((SendSoapMessageAction)test.getActions().get(0));
-        Assert.assertEquals(action.getName(), "send");
-        Assert.assertEquals(action.getEndpointUri(), "soapClient");
-        Assert.assertEquals(action.getMessageType(), MessageType.XML.name());
-    }
-    
 }

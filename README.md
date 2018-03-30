@@ -19,7 +19,7 @@ Preconditions
 You need following software on your machine in order to use the
 Citrus framework:
 
-* Java 7 or higher
+* Java 8 or higher
 Installed JDK plus JAVA_HOME environment variable set
 up and pointing to your Java installation directory
 
@@ -77,7 +77,7 @@ script with ANT (ant -p).
 Licensing
 ---------
   
-Copyright 2006-2016 ConSol* Software GmbH.
+Copyright 2006-2018 ConSol Software GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ Consulting
 ---------
 
 Just in case you need professional support for Citrus have a look at
-'http://www.citrusframework.org/contact.html'.
+'http://www.citrusframework.org/docs/consulting/'.
 Contact user@citrusframework.org directly for any request or questions
 (or use the contact form at 'http://www.consol.com/contact/')
 
@@ -108,11 +108,13 @@ or directly to http://github.com/christophd/citrus/issues
 Team
 ---------
 
-ConSol* Software GmbH
+```
+ConSol Software GmbH
 Christoph Deppisch
 christoph.deppisch@consol.de
 
 http://www.citrusframework.org
+```
 
 Information
 ---------

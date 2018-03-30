@@ -26,22 +26,22 @@ import org.testng.annotations.Test;
  */
 public class HttpServerIT extends AbstractTestNGCitrusTest {
     @Test
-    @CitrusXmlTest
-    public void HttpServerIT() {}
+    @CitrusXmlTest(name = "HttpServerIT")
+    public void serverIT() {}
 
     @Test
-    @CitrusXmlTest
-    public void HttpServerStandaloneIT() {}
+    @CitrusXmlTest(name = "HttpServerStandaloneIT")
+    public void serverStandaloneIT() {}
 
     @Test
-    @CitrusXmlTest
-    public void HttpParallelRequest_1_IT() {}
+    @CitrusXmlTest(name = "HttpParallelRequest_1_IT")
+    public void parallelRequestsIterateIT() {}
 
     @Test
-    @CitrusXmlTest
-    public void HttpParallelRequest_2_IT() {}
+    @CitrusXmlTest(name = "HttpParallelRequest_2_IT")
+    public void parallelRequestsEndpointUriIT() {}
 
     @Test
-    @CitrusXmlTest
-    public void HttpParallelRequest_3_IT() {}
+    @CitrusXmlTest(name = "HttpParallelRequest_3_IT")
+    public void parallelRequestsIT() {}
 }

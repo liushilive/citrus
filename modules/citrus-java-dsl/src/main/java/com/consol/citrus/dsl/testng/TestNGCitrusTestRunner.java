@@ -216,12 +216,6 @@ public class TestNGCitrusTestRunner extends TestNGCitrusTest implements TestRunn
     }
 
     @Override
-    @Deprecated
-    public TestAction sendSoapFault(BuilderSupport<SendSoapFaultBuilder> configurer) {
-        return testRunner.sendSoapFault(configurer);
-    }
-
-    @Override
     public SleepAction sleep() {
         return testRunner.sleep();
     }
@@ -264,6 +258,11 @@ public class TestNGCitrusTestRunner extends TestNGCitrusTest implements TestRunn
     @Override
     public StopTimeAction stopTime(String id) {
         return testRunner.stopTime(id);
+    }
+
+    @Override
+    public StopTimeAction stopTime(String id, String suffix) {
+        return testRunner.stopTime(id, suffix);
     }
 
     @Override
@@ -332,6 +331,11 @@ public class TestNGCitrusTestRunner extends TestNGCitrusTest implements TestRunn
     }
 
     @Override
+    public AsyncBuilder async() {
+        return testRunner.async();
+    }
+
+    @Override
     public TimerBuilder timer() {
         return testRunner.timer();
     }
@@ -349,6 +353,16 @@ public class TestNGCitrusTestRunner extends TestNGCitrusTest implements TestRunn
     @Override
     public TestAction docker(BuilderSupport<DockerActionBuilder> configurer) {
         return testRunner.docker(configurer);
+    }
+
+    @Override
+    public TestAction kubernetes(BuilderSupport<KubernetesActionBuilder> configurer) {
+        return testRunner.kubernetes(configurer);
+    }
+
+    @Override
+    public TestAction selenium(BuilderSupport<SeleniumActionBuilder> configurer) {
+        return testRunner.selenium(configurer);
     }
 
     @Override

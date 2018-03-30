@@ -17,20 +17,25 @@
 package com.consol.citrus.dsl.endpoint;
 
 import com.consol.citrus.docker.client.DockerClientBuilder;
+import com.consol.citrus.dsl.endpoint.jdbc.JdbcDbServerEndpointBuilder;
+import com.consol.citrus.dsl.endpoint.selenium.SeleniumBrowserEndpointBuilder;
 import com.consol.citrus.endpoint.Endpoint;
 import com.consol.citrus.endpoint.EndpointBuilder;
 import com.consol.citrus.ftp.client.FtpClientBuilder;
 import com.consol.citrus.ftp.server.FtpServerBuilder;
 import com.consol.citrus.http.client.HttpClientBuilder;
 import com.consol.citrus.http.server.HttpServerBuilder;
+import com.consol.citrus.jdbc.server.JdbcServerBuilder;
 import com.consol.citrus.jms.endpoint.JmsEndpointBuilder;
 import com.consol.citrus.jms.endpoint.JmsSyncEndpointBuilder;
 import com.consol.citrus.jmx.client.JmxClientBuilder;
 import com.consol.citrus.jmx.server.JmxServerBuilder;
+import com.consol.citrus.kubernetes.client.KubernetesClientBuilder;
 import com.consol.citrus.mail.client.MailClientBuilder;
 import com.consol.citrus.mail.server.MailServerBuilder;
 import com.consol.citrus.rmi.client.RmiClientBuilder;
 import com.consol.citrus.rmi.server.RmiServerBuilder;
+import com.consol.citrus.selenium.endpoint.SeleniumBrowserBuilder;
 import com.consol.citrus.ssh.client.SshClientBuilder;
 import com.consol.citrus.ssh.server.SshServerBuilder;
 import com.consol.citrus.vertx.endpoint.VertxEndpointBuilder;
@@ -146,4 +151,37 @@ public abstract class CitrusEndpoints {
             }
         };
     }
+
+    /**
+     * Creates new KubernetesClient builder.
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public static ClientServerEndpointBuilder<KubernetesClientBuilder, KubernetesClientBuilder> kubernetes() {
+        return new ClientServerEndpointBuilder(new KubernetesClientBuilder(), new KubernetesClientBuilder()) {
+            @Override
+            public EndpointBuilder<? extends Endpoint> server() {
+                throw new UnsupportedOperationException("Citrus Kubernetes stack has no support for server implementation");
+            }
+        };
+    }
+
+    /**
+     * Creates new SeleniumBrowser builder.
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public static SeleniumBrowserEndpointBuilder<SeleniumBrowserBuilder> selenium() {
+        return new SeleniumBrowserEndpointBuilder(new SeleniumBrowserBuilder());
+    }
+
+    /**
+     * Creates new JdbcDbServer builder.
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public static JdbcDbServerEndpointBuilder<JdbcServerBuilder> jdbc() {
+        return new JdbcDbServerEndpointBuilder(new JdbcServerBuilder());
+    }
+
 }

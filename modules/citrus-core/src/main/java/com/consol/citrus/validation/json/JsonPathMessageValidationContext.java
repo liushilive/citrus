@@ -16,7 +16,7 @@
 
 package com.consol.citrus.validation.json;
 
-import com.consol.citrus.validation.context.ValidationContext;
+import com.consol.citrus.validation.context.DefaultValidationContext;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
@@ -27,7 +27,7 @@ import java.util.Map;
  * @author Christoph Deppisch
  * @since 2.3
  */
-public class JsonPathMessageValidationContext implements ValidationContext {
+public class JsonPathMessageValidationContext extends DefaultValidationContext {
 
     /** Map holding xpath expressions as key and expected values as values */
     private Map<String, Object> jsonPathExpressions = new HashMap<>();
@@ -50,7 +50,7 @@ public class JsonPathMessageValidationContext implements ValidationContext {
     }
 
     /**
-     * Check wheather give path expression is a JSONPath expression.
+     * Check whether given path expression is a JSONPath expression.
      * @param pathExpression
      * @return
      */

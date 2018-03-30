@@ -22,6 +22,7 @@ import com.consol.citrus.context.ReferenceResolver;
 import com.consol.citrus.mail.client.MailClient;
 import com.consol.citrus.mail.client.MailClientBuilder;
 import com.consol.citrus.mail.message.MailMessageConverter;
+import com.consol.citrus.mail.model.MailMarshaller;
 import org.springframework.util.StringUtils;
 
 import java.util.Properties;
@@ -65,12 +66,16 @@ public class MailClientConfigParser extends AbstractAnnotationConfigParser<MailC
             builder.messageConverter(getReferenceResolver().resolve(annotation.messageConverter(), MailMessageConverter.class));
         }
 
+        if (StringUtils.hasText(annotation.marshaller())) {
+            builder.marshaller(getReferenceResolver().resolve(annotation.marshaller(), MailMarshaller.class));
+        }
+
         builder.timeout(annotation.timeout());
 
         if (StringUtils.hasText(annotation.actor())) {
             builder.actor(getReferenceResolver().resolve(annotation.actor(), TestActor.class));
         }
 
-        return builder.build();
+        return builder.initialize().build();
     }
 }

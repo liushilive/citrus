@@ -20,20 +20,22 @@ import com.consol.citrus.Citrus;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.endpoint.Endpoint;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
-import com.consol.citrus.message.Message;
-import com.consol.citrus.message.MessageSelectorBuilder;
+import com.consol.citrus.message.*;
 import com.consol.citrus.messaging.Consumer;
 import com.consol.citrus.messaging.SelectiveConsumer;
+import com.consol.citrus.validation.DefaultMessageHeaderValidator;
 import com.consol.citrus.validation.MessageValidator;
 import com.consol.citrus.validation.builder.MessageContentBuilder;
 import com.consol.citrus.validation.builder.PayloadTemplateMessageBuilder;
 import com.consol.citrus.validation.callback.ValidationCallback;
 import com.consol.citrus.validation.context.ValidationContext;
+import com.consol.citrus.validation.json.JsonPathMessageValidationContext;
+import com.consol.citrus.validation.script.ScriptValidationContext;
+import com.consol.citrus.validation.xml.XpathMessageValidationContext;
 import com.consol.citrus.variable.VariableExtractor;
 import com.consol.citrus.variable.dictionary.DataDictionary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -51,10 +53,10 @@ import java.util.*;
  */
 public class ReceiveMessageAction extends AbstractTestAction {
     /** Build message selector with name value pairs */
-    private Map<String, Object> messageSelector = new HashMap<>();
+    private Map<String, Object> messageSelectorMap = new HashMap<>();
 
     /** Select messages via message selector string */
-    private String messageSelectorString;
+    private String messageSelector;
 
     /** Message endpoint */
     private Endpoint endpoint;
@@ -78,7 +80,7 @@ public class ReceiveMessageAction extends AbstractTestAction {
     private ValidationCallback validationCallback;
     
     /** List of validation contexts for this receive action */
-    private List<ValidationContext> validationContexts = new ArrayList<ValidationContext>();
+    private List<ValidationContext> validationContexts = new ArrayList<>();
     
     /** List of variable extractors responsible for creating variables from received message content */
     private List<VariableExtractor> variableExtractors = new ArrayList<VariableExtractor>();
@@ -106,21 +108,13 @@ public class ReceiveMessageAction extends AbstractTestAction {
      */
     @Override
     public void doExecute(TestContext context) {
-        Message receivedMessage;
-        String selectorString = null;
-        
         try {
-            //build message selector string if present
-            if (StringUtils.hasText(messageSelectorString)) {
-                selectorString = messageSelectorString;
-            } else if (!CollectionUtils.isEmpty(messageSelector)) {
-                selectorString = MessageSelectorBuilder.fromKeyValueMap(
-                        context.resolveDynamicValuesInMap(messageSelector)).build(); 
-            }
-            
+            Message receivedMessage;
+            String selector = MessageSelectorBuilder.build(messageSelector, messageSelectorMap, context);
+
             //receive message either selected or plain with message receiver
-            if (StringUtils.hasText(selectorString)) {
-                receivedMessage = receiveSelected(context, selectorString);
+            if (StringUtils.hasText(selector)) {
+                receivedMessage = receiveSelected(context, selector);
             } else {
                 receivedMessage = receive(context);
             }
@@ -187,20 +181,50 @@ public class ReceiveMessageAction extends AbstractTestAction {
         }
 
         if (validationCallback != null) {
-            validationCallback.validate(receivedMessage, context);
-        } else if (validator != null) {
-            validator.validateMessage(receivedMessage, createControlMessage(context, messageType), context, validationContexts);
-        } else {
-            Message controlMessage = createControlMessage(context, messageType);
-            List<MessageValidator<? extends ValidationContext>> validators =
-                                context.getMessageValidatorRegistry().findMessageValidators(messageType, receivedMessage, validationContexts);
-
-            if (controlMessage.getPayload() != null && validators.isEmpty()) {
-                log.warn(String.format("Unable to find proper message validator for message type '%s' and validation contexts '%s'", messageType, validationContexts));
+            if (StringUtils.hasText(receivedMessage.getName())) {
+                context.getMessageStore().storeMessage(receivedMessage.getName(), receivedMessage);
+            } else {
+                context.getMessageStore().storeMessage(context.getMessageStore().constructMessageName(this, getOrCreateEndpoint(context)), receivedMessage);
             }
 
-            for (MessageValidator<? extends ValidationContext> messageValidator : validators) {
-                messageValidator.validateMessage(receivedMessage, controlMessage, context, validationContexts);
+            validationCallback.validate(receivedMessage, context);
+        } else {
+            Message controlMessage = createControlMessage(context, messageType);
+            if (StringUtils.hasText(controlMessage.getName())) {
+                context.getMessageStore().storeMessage(controlMessage.getName(), receivedMessage);
+            } else {
+                context.getMessageStore().storeMessage(context.getMessageStore().constructMessageName(this, getOrCreateEndpoint(context)), receivedMessage);
+            }
+
+            if (validator != null) {
+                validator.validateMessage(receivedMessage, controlMessage, context, validationContexts);
+
+                if (!DefaultMessageHeaderValidator.class.isAssignableFrom(validator.getClass())) {
+                    MessageValidator defaultMessageHeaderValidator = context.getMessageValidatorRegistry().getDefaultMessageHeaderValidator();
+                    if (defaultMessageHeaderValidator != null) {
+                        defaultMessageHeaderValidator.validateMessage(receivedMessage, controlMessage, context, validationContexts);
+                    }
+                }
+            } else {
+                List<MessageValidator<? extends ValidationContext>> validators =
+                        context.getMessageValidatorRegistry().findMessageValidators(messageType, receivedMessage);
+
+                if (validators.isEmpty()) {
+                    if (controlMessage.getPayload() instanceof String &&
+                            StringUtils.hasText(controlMessage.getPayload(String.class))) {
+                        throw new CitrusRuntimeException(String.format("Unable to find proper message validator for message type '%s' and validation contexts '%s'", messageType, validationContexts));
+                    } else if (validationContexts.stream().anyMatch(item -> JsonPathMessageValidationContext.class.isAssignableFrom(item.getClass())
+                            || XpathMessageValidationContext.class.isAssignableFrom(item.getClass())
+                            || ScriptValidationContext.class.isAssignableFrom(item.getClass()))) {
+                        throw new CitrusRuntimeException(String.format("Unable to find proper message validator for message type '%s' and validation contexts '%s'", messageType, validationContexts));
+                    } else {
+                        log.warn(String.format("Unable to find proper message validator for message type '%s' and validation contexts '%s'", messageType, validationContexts));
+                    }
+                }
+
+                for (MessageValidator<? extends ValidationContext> messageValidator : validators) {
+                    messageValidator.validateMessage(receivedMessage, controlMessage, context, validationContexts);
+                }
             }
         }
     }
@@ -216,7 +240,7 @@ public class ReceiveMessageAction extends AbstractTestAction {
             messageBuilder.setDataDictionary(dataDictionary);
         }
 
-        return messageBuilder.buildMessageContent(context, messageType);
+        return messageBuilder.buildMessageContent(context, messageType, MessageDirection.INBOUND);
     }
     
     @Override
@@ -230,20 +254,20 @@ public class ReceiveMessageAction extends AbstractTestAction {
     }
 
     /**
-     * Setter for messageSelector.
-     * @param messageSelector
+     * Setter for messageSelectorMap.
+     * @param messageSelectorMap
      */
-    public ReceiveMessageAction setMessageSelector(Map<String, Object> messageSelector) {
-        this.messageSelector = messageSelector;
+    public ReceiveMessageAction setMessageSelectorMap(Map<String, Object> messageSelectorMap) {
+        this.messageSelectorMap = messageSelectorMap;
         return this;
     }
 
     /**
      * Set message selector string.
-     * @param messageSelectorString
+     * @param messageSelector
      */
-    public ReceiveMessageAction setMessageSelectorString(String messageSelectorString) {
-        this.messageSelectorString = messageSelectorString;
+    public ReceiveMessageAction setMessageSelector(String messageSelector) {
+        this.messageSelector = messageSelector;
         return this;
     }
 
@@ -367,19 +391,19 @@ public class ReceiveMessageAction extends AbstractTestAction {
     }
 
     /**
-     * Gets the messageSelector.
-     * @return the messageSelector
+     * Gets the messageSelectorMap.
+     * @return the messageSelectorMap
      */
-    public Map<String, Object> getMessageSelector() {
-        return messageSelector;
+    public Map<String, Object> getMessageSelectorMap() {
+        return messageSelectorMap;
     }
 
     /**
-     * Gets the messageSelectorString.
-     * @return the messageSelectorString
+     * Gets the messageSelector.
+     * @return the messageSelector
      */
-    public String getMessageSelectorString() {
-        return messageSelectorString;
+    public String getMessageSelector() {
+        return messageSelector;
     }
 
     /**

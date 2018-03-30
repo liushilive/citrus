@@ -21,8 +21,14 @@ import com.consol.citrus.actions.ReceiveMessageAction;
 import com.consol.citrus.dsl.actions.DelegatingTestAction;
 import com.consol.citrus.endpoint.Endpoint;
 import com.consol.citrus.http.message.HttpMessage;
+import com.consol.citrus.http.message.HttpMessageContentBuilder;
+import com.consol.citrus.message.Message;
 import com.consol.citrus.message.MessageType;
+import com.consol.citrus.validation.builder.StaticMessageContentBuilder;
 import org.springframework.http.HttpMethod;
+import org.springframework.util.StringUtils;
+
+import javax.servlet.http.Cookie;
 
 /**
  * @author Christoph Deppisch
@@ -44,11 +50,18 @@ public class HttpServerRequestActionBuilder extends ReceiveMessageBuilder<Receiv
         getAction().setEndpoint(httpServer);
         message(httpMessage);
         messageType(MessageType.XML);
+        headerNameIgnoreCase(true);
     }
 
     @Override
     protected void setPayload(String payload) {
         httpMessage.setPayload(payload);
+    }
+
+    @Override
+    public HttpServerRequestActionBuilder name(String name) {
+        httpMessage.setName(name);
+        return super.name(name);
     }
 
     /**
@@ -68,6 +81,16 @@ public class HttpServerRequestActionBuilder extends ReceiveMessageBuilder<Receiv
      */
     public HttpServerRequestActionBuilder method(HttpMethod method) {
         httpMessage.method(method);
+        return this;
+    }
+
+    /**
+     * Adds a query param to the request uri.
+     * @param name
+     * @return
+     */
+    public HttpServerRequestActionBuilder queryParam(String name) {
+        httpMessage.queryParam(name, null);
         return this;
     }
 
@@ -109,6 +132,42 @@ public class HttpServerRequestActionBuilder extends ReceiveMessageBuilder<Receiv
      */
     public HttpServerRequestActionBuilder accept(String accept) {
         httpMessage.accept(accept);
+        return this;
+    }
+
+    /**
+     * Adds cookie to response by "Cookie" header.
+     * @param cookie
+     * @return
+     */
+    public HttpServerRequestActionBuilder cookie(Cookie cookie) {
+        httpMessage.cookie(cookie);
+        return this;
+    }
+
+    @Override
+    public HttpServerRequestActionBuilder message(Message message) {
+        if (message instanceof HttpMessage) {
+            if (this.httpMessage.getRequestMethod() != null) {
+                ((HttpMessage) message).method(this.httpMessage.getRequestMethod());
+            }
+
+            if (StringUtils.hasText(this.httpMessage.getPath())) {
+                ((HttpMessage) message).path(this.httpMessage.getPath());
+            }
+
+            if (StringUtils.hasText(this.httpMessage.getQueryParams())) {
+                ((HttpMessage) message).queryParams(this.httpMessage.getQueryParams());
+            }
+
+            this.httpMessage = (HttpMessage) message;
+        } else {
+            this.httpMessage = new HttpMessage(message);
+        }
+
+        StaticMessageContentBuilder staticMessageContentBuilder = StaticMessageContentBuilder.withMessage(httpMessage);
+        staticMessageContentBuilder.setMessageHeaders(httpMessage.getHeaders());
+        getAction().setMessageBuilder(new HttpMessageContentBuilder(httpMessage, staticMessageContentBuilder));
         return this;
     }
 }

@@ -29,6 +29,7 @@ import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.integration.http.support.DefaultHttpHeaderMapper;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -59,7 +60,7 @@ public class HttpClientConfigParser extends AbstractAnnotationConfigParser<HttpC
                     "'endpoint-resolver' is required!");
         }
 
-        if (StringUtils.hasText(annotation.restTemplate())){
+        if (StringUtils.hasText(annotation.restTemplate())) {
             builder.restTemplate(getReferenceResolver().resolve(annotation.restTemplate(), RestTemplate.class));
         }
 
@@ -82,11 +83,16 @@ public class HttpClientConfigParser extends AbstractAnnotationConfigParser<HttpC
             builder.endpointResolver(getReferenceResolver().resolve(annotation.endpointResolver(), EndpointUriResolver.class));
         }
 
+        builder.defaultAcceptHeader(annotation.defaultAcceptHeader());
+        builder.handleCookies(annotation.handleCookies());
         builder.charset(annotation.charset());
         builder.contentType(annotation.contentType());
         builder.pollingInterval(annotation.pollingInterval());
 
         builder.errorHandlingStrategy(annotation.errorStrategy());
+        if (StringUtils.hasText(annotation.errorHandler())) {
+            builder.errorHandler(getReferenceResolver().resolve(annotation.errorHandler(), ResponseErrorHandler.class));
+        }
 
         builder.interceptors(getReferenceResolver().resolve(annotation.interceptors(), ClientHttpRequestInterceptor.class));
 
@@ -99,6 +105,6 @@ public class HttpClientConfigParser extends AbstractAnnotationConfigParser<HttpC
             builder.actor(getReferenceResolver().resolve(annotation.actor(), TestActor.class));
         }
 
-        return builder.build();
+        return builder.initialize().build();
     }
 }

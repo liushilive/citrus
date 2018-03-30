@@ -50,15 +50,20 @@ public class HttpServerParserTest extends AbstractBeanDefinitionParserTest {
         Assert.assertNull(server.getServletHandler());
         Assert.assertNull(server.getSecurityHandler());
         Assert.assertEquals(server.getConnectors().length, 0);
+        Assert.assertEquals(server.getFilters().size(), 0);
+        Assert.assertEquals(server.getFilterMappings().size(), 0);
         Assert.assertEquals(server.getName(), "httpServer1");
         Assert.assertEquals(server.getPort(), 8081);
         Assert.assertEquals(server.getContextConfigLocation(), "classpath:com/consol/citrus/http/citrus-servlet-context.xml");
         Assert.assertEquals(server.getResourceBase(), "src/main/resources");
         Assert.assertFalse(server.isAutoStart());
+        Assert.assertFalse(server.isDebugLogging());
         Assert.assertFalse(server.isUseRootContextAsParent());
         Assert.assertEquals(server.getContextPath(), "/");
         Assert.assertEquals(server.getServletName(), "httpServer1-servlet");
         Assert.assertEquals(server.getServletMappingPath(), "/*");
+        Assert.assertFalse(server.isHandleAttributeHeaders());
+        Assert.assertFalse(server.isHandleCookies());
 
         // 2nd message sender
         server = servers.get("httpServer2");
@@ -71,16 +76,23 @@ public class HttpServerParserTest extends AbstractBeanDefinitionParserTest {
         Assert.assertEquals(server.getContextConfigLocation(), "classpath:com/consol/citrus/http/servlet-context.xml");
         Assert.assertEquals(server.getResourceBase(), "src/it/resources");
         Assert.assertFalse(server.isAutoStart());
+        Assert.assertTrue(server.isDebugLogging());
         Assert.assertTrue(server.isUseRootContextAsParent());
         Assert.assertEquals(server.getContextPath(), "/citrus");
         Assert.assertEquals(server.getServletName(), "citrus-http");
         Assert.assertEquals(server.getServletMappingPath(), "/foo");
-        
+        Assert.assertTrue(server.isHandleAttributeHeaders());
+        Assert.assertTrue(server.isHandleCookies());
+
         // 3rd message sender
         server = servers.get("httpServer3");
         Assert.assertNull(server.getConnector());
         Assert.assertNotNull(server.getConnectors());
         Assert.assertEquals(server.getConnectors().length, beanDefinitionContext.getBean("connectors", List.class).size());
+        Assert.assertNotNull(server.getFilters());
+        Assert.assertEquals(server.getFilters().size(), beanDefinitionContext.getBean("filters", Map.class).size());
+        Assert.assertNotNull(server.getFilterMappings());
+        Assert.assertEquals(server.getFilterMappings().size(), beanDefinitionContext.getBean("filterMappings", Map.class).size());
         Assert.assertEquals(server.getName(), "httpServer3");
         Assert.assertEquals(server.getPort(), 8083);
         Assert.assertEquals(server.getContextConfigLocation(), "classpath:com/consol/citrus/http/citrus-servlet-context.xml");

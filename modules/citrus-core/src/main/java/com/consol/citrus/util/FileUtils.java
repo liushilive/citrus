@@ -41,6 +41,8 @@ public abstract class FileUtils {
     /** Logger */
     private static Logger log = LoggerFactory.getLogger(FileUtils.class);
 
+    public final static String FILE_PATH_CHARSET_PARAMETER = ";charset=";
+
     /** Simulation mode required for Citrus administration UI when loading test cases from Java DSL */
     private static boolean simulationMode = false;
 
@@ -79,6 +81,16 @@ public abstract class FileUtils {
     }
     
     /**
+     * Read file content to string value with default charset settings.
+     * @param file
+     * @return
+     * @throws IOException
+     */
+    public static String readToString(File file) throws IOException {
+         return readToString(new FileInputStream(file), getDefaultCharset());
+    }
+
+    /**
      * Read file resource to string value.
      * @param resource
      * @param charset
@@ -114,6 +126,19 @@ public abstract class FileUtils {
     }
 
     /**
+     * Writes inputStream content to file. Uses default charset encoding.
+     * @param inputStream
+     * @param file
+     */
+    public static void writeToFile(InputStream inputStream, File file) {
+        try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream)) {
+            writeToFile(FileCopyUtils.copyToString(inputStreamReader), file, getDefaultCharset());
+        } catch (IOException e) {
+            throw new CitrusRuntimeException("Failed to write file", e);
+        }
+    }
+
+    /**
      * Writes String content to file. Uses default charset encoding.
      * @param content
      * @param file
@@ -132,23 +157,17 @@ public abstract class FileUtils {
             log.debug(String.format("Writing file resource: '%s' (encoding is '%s')", file.getName(), charset.displayName()));
         }
 
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(file);
+        if (!file.getParentFile().exists()) {
+            if (!file.getParentFile().mkdirs()) {
+                throw new CitrusRuntimeException("Unable to create folder structure for file: " + file.getPath());
+            }
+        }
+
+        try (OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
             fos.write(content.getBytes(charset));
             fos.flush();
-        } catch (FileNotFoundException e) {
-            throw new CitrusRuntimeException("Failed to write file", e);
         } catch (IOException e) {
             throw new CitrusRuntimeException("Failed to write file", e);
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    log.warn("Unable to close file output stream", e);
-                }
-            }
         }
     }
 
@@ -223,8 +242,26 @@ public abstract class FileUtils {
      * @return
      */
     public static Resource getFileResource(String filePath, TestContext context) {
-        return new PathMatchingResourcePatternResolver().getResource(
-                context.replaceDynamicContentInString(filePath));
+        if (filePath.contains(FILE_PATH_CHARSET_PARAMETER)) {
+            return new PathMatchingResourcePatternResolver().getResource(
+                    context.replaceDynamicContentInString(filePath.substring(0, filePath.indexOf(FileUtils.FILE_PATH_CHARSET_PARAMETER))));
+        } else {
+            return new PathMatchingResourcePatternResolver().getResource(
+                    context.replaceDynamicContentInString(filePath));
+        }
+    }
+
+    /**
+     * Reads file resource from path with variable replacement support.
+     * @param filePath
+     * @return
+     */
+    public static Resource getFileResource(String filePath) {
+        if (filePath.contains(FILE_PATH_CHARSET_PARAMETER)) {
+            return new PathMatchingResourcePatternResolver().getResource(filePath.substring(0, filePath.indexOf(FileUtils.FILE_PATH_CHARSET_PARAMETER)));
+        } else {
+            return new PathMatchingResourcePatternResolver().getResource(filePath);
+        }
     }
 
     /**
@@ -232,7 +269,21 @@ public abstract class FileUtils {
      * this one otherwise use system default.
      * @return
      */
-    private static Charset getDefaultCharset() {
+    public static Charset getDefaultCharset() {
         return Charset.forName(Citrus.CITRUS_FILE_ENCODING);
+    }
+
+    /**
+     * Extract charset information from file path. If not set return default charset. Charset
+     * is read as path parameter at the end of the file path {@see FileUtils.FILE_PATH_CHARSET_PARAMETER}
+     * @param path
+     * @return
+     */
+    public static Charset getCharset(String path) {
+        if (path.contains(FileUtils.FILE_PATH_CHARSET_PARAMETER)) {
+            return Charset.forName(path.substring(path.indexOf(FileUtils.FILE_PATH_CHARSET_PARAMETER) + FileUtils.FILE_PATH_CHARSET_PARAMETER.length()));
+        } else {
+            return FileUtils.getDefaultCharset();
+        }
     }
 }

@@ -64,12 +64,12 @@ public abstract class AbstractIteratingActionContainer extends AbstractActionCon
         context.setVariable(indexName, String.valueOf(index));
 
         for (TestAction action: actions) {
-            setLastExecutedAction(action);
+            setActiveAction(action);
             action.execute(context);
         }
     }
-    
-    /** 
+
+    /**
      * Check aborting condition.
      * @return
      */
@@ -103,7 +103,12 @@ public abstract class AbstractIteratingActionContainer extends AbstractActionCon
 
         return BooleanExpressionParser.evaluate(conditionString);
     }
-    
+
+    @Override
+    public boolean isDone(TestContext context) {
+        return super.isDone(context) || !checkCondition(context);
+    }
+
     /**
      * Aborting condition.
      * @param condition

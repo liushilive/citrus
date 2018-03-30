@@ -18,8 +18,6 @@ package com.consol.citrus.dsl.runner;
 
 import com.consol.citrus.TestCase;
 import com.consol.citrus.actions.AntRunAction;
-import com.consol.citrus.dsl.builder.AntRunBuilder;
-import com.consol.citrus.dsl.builder.BuilderSupport;
 import com.consol.citrus.testng.AbstractTestNGUnitTest;
 import org.apache.tools.ant.BuildEvent;
 import org.apache.tools.ant.BuildListener;
@@ -39,20 +37,15 @@ public class AntRunTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                antrun(new BuilderSupport<AntRunBuilder>() {
-                    @Override
-                    public void configure(AntRunBuilder builder) {
-                        builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
-                            .target("sayHello");
-                    }
-                });
+                antrun(builder -> builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
+                    .target("sayHello"));
             }
         };
         
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), AntRunAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), AntRunAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), AntRunAction.class);
 
         AntRunAction action = (AntRunAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "antrun");
@@ -65,20 +58,15 @@ public class AntRunTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                antrun(new BuilderSupport<AntRunBuilder>() {
-                    @Override
-                    public void configure(AntRunBuilder builder) {
-                        builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
-                                .targets("sayHello", "sayGoodbye");
-                    }
-                });
+                antrun(builder -> builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
+                        .targets("sayHello", "sayGoodbye"));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), AntRunAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), AntRunAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), AntRunAction.class);
         
         AntRunAction action = (AntRunAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "antrun");
@@ -92,22 +80,17 @@ public class AntRunTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                antrun(new BuilderSupport<AntRunBuilder>() {
-                    @Override
-                    public void configure(AntRunBuilder builder) {
-                        builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
-                                .target("sayHello")
-                                .property("welcomeText", "Hi everybody!")
-                                .property("goodbyeText", "Goodbye!");
-                    }
-                });
+                antrun(builder -> builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
+                        .target("sayHello")
+                        .property("welcomeText", "Hi everybody!")
+                        .property("goodbyeText", "Goodbye!"));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), AntRunAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), AntRunAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), AntRunAction.class);
         
         AntRunAction action = (AntRunAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "antrun");
@@ -125,21 +108,16 @@ public class AntRunTestRunnerTest extends AbstractTestNGUnitTest {
             public void execute() {
                 variable("checked", true);
 
-                antrun(new BuilderSupport<AntRunBuilder>() {
-                    @Override
-                    public void configure(AntRunBuilder builder) {
-                        builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
-                                .target("checkMe")
-                                .propertyFile("classpath:com/consol/citrus/dsl/runner/build.properties");
-                    }
-                });
+                antrun(builder -> builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
+                        .target("checkMe")
+                        .propertyFile("classpath:com/consol/citrus/dsl/runner/build.properties"));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), AntRunAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), AntRunAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), AntRunAction.class);
         
         AntRunAction action = (AntRunAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "antrun");
@@ -157,21 +135,16 @@ public class AntRunTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                antrun(new BuilderSupport<AntRunBuilder>() {
-                    @Override
-                    public void configure(AntRunBuilder builder) {
-                        builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
-                                .target("sayHello")
-                                .listener(buildListener);
-                    }
-                });
+                antrun(builder -> builder.buildFilePath("com/consol/citrus/dsl/runner/build.xml")
+                        .target("sayHello")
+                        .listener(buildListener));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), AntRunAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), AntRunAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), AntRunAction.class);
 
         AntRunAction action = (AntRunAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "antrun");

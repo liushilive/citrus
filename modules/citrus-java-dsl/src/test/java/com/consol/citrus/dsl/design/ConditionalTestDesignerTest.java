@@ -17,9 +17,7 @@
 package com.consol.citrus.dsl.design;
 
 import com.consol.citrus.TestCase;
-import com.consol.citrus.container.ConditionExpression;
 import com.consol.citrus.container.Conditional;
-import com.consol.citrus.context.TestContext;
 import com.consol.citrus.testng.AbstractTestNGUnitTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -27,26 +25,6 @@ import org.testng.annotations.Test;
 import static org.hamcrest.Matchers.is;
 
 public class ConditionalTestDesignerTest extends AbstractTestNGUnitTest {
-    @Test
-    public void testConditionalBuilderNested() {
-        MockTestDesigner builder = new MockTestDesigner(applicationContext, context) {
-            @Override
-            public void configure() {
-                conditional(echo("${var}")).when("${var} = 5");
-            }
-        };
-
-        builder.configure();
-
-        TestCase test = builder.getTestCase();
-        Assert.assertEquals(test.getActionCount(), 1);
-        Assert.assertEquals(test.getActions().get(0).getClass(), Conditional.class);
-        Assert.assertEquals(test.getActions().get(0).getName(), "conditional");
-        
-        Conditional container = (Conditional)test.getActions().get(0);
-        Assert.assertEquals(container.getActionCount(), 1);
-        Assert.assertEquals(container.getCondition(), "${var} = 5");
-    }
 
     @Test
     public void testConditionalBuilder() {
@@ -74,12 +52,7 @@ public class ConditionalTestDesignerTest extends AbstractTestNGUnitTest {
         MockTestDesigner builder = new MockTestDesigner(applicationContext, context) {
             @Override
             public void configure() {
-                conditional().when(new ConditionExpression() {
-                    @Override
-                    public boolean evaluate(TestContext context) {
-                        return context.getVariable("var").equals("Hello");
-                    }
-                }).actions(echo("${var}"));
+                conditional().when(context -> context.getVariable("var").equals("Hello")).actions(echo("${var}"));
             }
         };
 

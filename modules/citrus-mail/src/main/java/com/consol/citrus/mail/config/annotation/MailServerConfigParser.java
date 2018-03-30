@@ -48,6 +48,7 @@ public class MailServerConfigParser extends AbstractAnnotationConfigParser<MailS
 
         builder.autoStart(annotation.autoStart());
         builder.timeout(annotation.timeout());
+        builder.debugLogging(annotation.debugLogging());
 
         if (StringUtils.hasText(annotation.endpointAdapter())) {
             builder.endpointAdapter(getReferenceResolver().resolve(annotation.endpointAdapter(), EndpointAdapter.class));
@@ -74,6 +75,6 @@ public class MailServerConfigParser extends AbstractAnnotationConfigParser<MailS
             builder.javaMailProperties(getReferenceResolver().resolve(annotation.javaMailProperties(), Properties.class));
         }
 
-        return builder.build();
+        return builder.initialize().build();
     }
 }

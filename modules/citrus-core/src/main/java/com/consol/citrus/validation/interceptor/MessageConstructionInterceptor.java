@@ -18,10 +18,11 @@ package com.consol.citrus.validation.interceptor;
 
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.message.Message;
+import com.consol.citrus.message.MessageDirection;
 
 
 /**
- * Implementing classes may intercept the message paload constructing mechanism in order 
+ * Implementing classes may intercept the message payload constructing mechanism in order
  * to modify the message content.
  * 
  * @author Christoph Deppisch
@@ -44,4 +45,10 @@ public interface MessageConstructionInterceptor {
      * @return true if this message interceptor supports the message type.
      */
     boolean supportsMessageType(String messageType);
+
+    /**
+     * Indicates the direction of messages this interceptor should apply to.
+     * @return
+     */
+    MessageDirection getDirection();
 }

@@ -27,12 +27,10 @@ import com.consol.citrus.xml.xpath.XPathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
-import org.springframework.xml.namespace.SimpleNamespaceContext;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
@@ -44,7 +42,7 @@ import java.util.Map.Entry;
 public class XpathMessageConstructionInterceptor extends AbstractMessageConstructionInterceptor {
 
     /** Overwrites message elements before validating (via XPath expressions) */
-    private Map<String, String> xPathExpressions = new HashMap<String, String>();
+    private Map<String, String> xPathExpressions = new LinkedHashMap<>();
     
     /** Logger */
     private static Logger log = LoggerFactory.getLogger(XpathMessageConstructionInterceptor.class);
@@ -62,7 +60,7 @@ public class XpathMessageConstructionInterceptor extends AbstractMessageConstruc
      */
     public XpathMessageConstructionInterceptor(Map<String, String> xPathExpressions) {
         super();
-        this.xPathExpressions = xPathExpressions;
+        this.xPathExpressions.putAll(xPathExpressions);
     }
 
     /**
@@ -93,9 +91,8 @@ public class XpathMessageConstructionInterceptor extends AbstractMessageConstruc
 
             Node node;
             if (XPathUtils.isXPathExpression(pathExpression)) {
-                SimpleNamespaceContext nsContext = new SimpleNamespaceContext();
-                nsContext.setBindings(XMLUtils.lookupNamespaces(message.getPayload(String.class)));
-                node = XPathUtils.evaluateAsNode(doc, pathExpression, nsContext);
+                node = XPathUtils.evaluateAsNode(doc, pathExpression,
+                                                context.getNamespaceContextBuilder().buildContext(message, Collections.emptyMap()));
             } else {
                 node = XMLUtils.findNodeByName(doc, pathExpression);
             }

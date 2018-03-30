@@ -25,9 +25,11 @@ import com.consol.citrus.validation.script.ScriptValidationContext;
 import com.consol.citrus.validation.script.sql.SqlResultSetScriptValidator;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -64,6 +66,46 @@ public class ExecuteSQLQueryBuilder extends AbstractTestActionBuilder<ExecuteSQL
      */
     public ExecuteSQLQueryBuilder jdbcTemplate(JdbcTemplate jdbcTemplate) {
         action.setJdbcTemplate(jdbcTemplate);
+        return this;
+    }
+
+    /**
+     * Sets the transaction manager to use.
+     * @param transactionManager
+     * @return
+     */
+    public ExecuteSQLQueryBuilder transactionManager(PlatformTransactionManager transactionManager) {
+        action.setTransactionManager(transactionManager);
+        return this;
+    }
+
+    /**
+     * Sets the transaction timeout to use.
+     * @param transactionTimeout
+     * @return
+     */
+    public ExecuteSQLQueryBuilder transactionTimeout(int transactionTimeout) {
+        action.setTransactionTimeout(String.valueOf(transactionTimeout));
+        return this;
+    }
+
+    /**
+     * Sets the transaction timeout to use.
+     * @param transactionTimeout
+     * @return
+     */
+    public ExecuteSQLQueryBuilder transactionTimeout(String transactionTimeout) {
+        action.setTransactionTimeout(transactionTimeout);
+        return this;
+    }
+
+    /**
+     * Sets the transaction isolation level to use.
+     * @param isolationLevel
+     * @return
+     */
+    public ExecuteSQLQueryBuilder transactionIsolationLevel(String isolationLevel) {
+        action.setTransactionIsolationLevel(isolationLevel);
         return this;
     }
 
@@ -143,9 +185,19 @@ public class ExecuteSQLQueryBuilder extends AbstractTestActionBuilder<ExecuteSQL
      * @param type
      */
     public ExecuteSQLQueryBuilder validateScript(Resource scriptResource, String type) {
+        return validateScript(scriptResource, type, FileUtils.getDefaultCharset());
+    }
+
+    /**
+     * Validate SQL result set via validation script, for instance Groovy.
+     * @param scriptResource
+     * @param type
+     * @param charset
+     */
+    public ExecuteSQLQueryBuilder validateScript(Resource scriptResource, String type, Charset charset) {
         ScriptValidationContext scriptValidationContext = new ScriptValidationContext(type);
         try {
-            scriptValidationContext.setValidationScript(FileUtils.readToString(scriptResource));
+            scriptValidationContext.setValidationScript(FileUtils.readToString(scriptResource, charset));
         } catch (IOException e) {
             throw new CitrusRuntimeException("Failed to read script resource", e);
         }

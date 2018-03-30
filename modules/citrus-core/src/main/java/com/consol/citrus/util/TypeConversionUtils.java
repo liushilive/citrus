@@ -32,6 +32,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamSource;
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -82,7 +83,7 @@ public abstract class TypeConversionUtils {
 
             Properties props = new Properties();
             try {
-                props.load(new StringReader(mapString.substring(1, mapString.length() - 1).replace(", ", "\n")));
+                props.load(new StringReader(mapString.substring(1, mapString.length() - 1).replaceAll(",\\s*", "\n")));
             } catch (IOException e) {
                 throw new CitrusRuntimeException("Failed to reconstruct object of type map", e);
             }
@@ -110,6 +111,32 @@ public abstract class TypeConversionUtils {
             } catch (UnsupportedEncodingException e) {
                 return (T) String.valueOf(target).getBytes();
             }
+        }
+
+        if (InputStream.class.isAssignableFrom(type)) {
+            if (target instanceof byte[]) {
+                return (T) new ByteArrayInputStream((byte[]) target);
+            } else if (target instanceof String) {
+                try {
+                    return (T) new ByteArrayInputStream(String.valueOf(target).getBytes(Citrus.CITRUS_FILE_ENCODING));
+                } catch (UnsupportedEncodingException e) {
+                    return (T) new ByteArrayInputStream(String.valueOf(target).getBytes());
+                }
+            } else {
+                try {
+                    return (T) new ByteArrayInputStream(target.toString().getBytes(Citrus.CITRUS_FILE_ENCODING));
+                } catch (UnsupportedEncodingException e) {
+                    return (T) new ByteArrayInputStream(target.toString().getBytes());
+                }
+            }
+        }
+
+        if (ByteBuffer.class.isAssignableFrom(target.getClass()) && type.equals(String.class)) {
+            return (T) new String(((ByteBuffer)target).array());
+        }
+
+        if (byte[].class.isAssignableFrom(target.getClass()) && type.equals(String.class)) {
+            return (T) new String((byte[]) target);
         }
 
         try {

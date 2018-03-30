@@ -24,6 +24,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.ws.mime.Attachment;
 
@@ -85,7 +86,12 @@ public class SoapAttachment implements Attachment, Serializable {
      */
     public static SoapAttachment from(Attachment attachment) {
         SoapAttachment soapAttachment = new SoapAttachment();
-        soapAttachment.setContentId(attachment.getContentId());
+
+        String contentId = attachment.getContentId();
+        if (contentId.startsWith("<") && contentId.endsWith(">")) {
+            contentId = contentId.substring(1, contentId.length() - 1);
+        }
+        soapAttachment.setContentId(contentId);
         soapAttachment.setContentType(attachment.getContentType());
 
         if (attachment.getContentType().startsWith("text")) {
@@ -192,7 +198,7 @@ public class SoapAttachment implements Attachment, Serializable {
             }
         } else {
             try {
-                byte[] binaryData = FileUtils.readToString(getDataHandler().getInputStream(), Charset.forName(charsetName)).getBytes(Charset.forName(charsetName));
+                byte[] binaryData = FileCopyUtils.copyToByteArray(getDataHandler().getInputStream());
                 if (encodingType.equals(SoapAttachment.ENCODING_BASE64_BINARY)) {
                     return Base64.encodeBase64String(binaryData);
                 } else if (encodingType.equals(SoapAttachment.ENCODING_HEX_BINARY)) {

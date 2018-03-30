@@ -26,6 +26,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.xml.namespace.SimpleNamespaceContext;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.xpath.XPathConstants;
@@ -48,21 +49,37 @@ public class XpathMappingDataDictionary extends AbstractXmlDataDictionary implem
     private static Logger log = LoggerFactory.getLogger(XpathMappingDataDictionary.class);
 
     @Override
-    public String translate(Node node, String value, TestContext context) {
+    public <T> T translate(Node node, T value, TestContext context) {
         for (Map.Entry<String, String> expressionEntry : mappings.entrySet()) {
             String expression = expressionEntry.getKey();
 
-            Node finding = (Node) XPathUtils.evaluateExpression(node.getOwnerDocument(), expression, buildNamespaceContext(node), XPathConstants.NODE);
+            NodeList findings = (NodeList) XPathUtils.evaluateExpression(node.getOwnerDocument(), expression, buildNamespaceContext(node), XPathConstants.NODESET);
 
-            if (finding != null && finding.equals(node)) {
+            if (findings != null && containsNode(findings, node)) {
                 if (log.isDebugEnabled()) {
                     log.debug(String.format("Data dictionary setting element '%s' value: %s", XMLUtils.getNodesPathName(node), expressionEntry.getValue()));
                 }
-                return context.replaceDynamicContentInString(expressionEntry.getValue());
+                return convertIfNecessary(context.replaceDynamicContentInString(expressionEntry.getValue()), value);
             }
         }
 
         return value;
+    }
+
+    /**
+     * Checks if given node set contains node.
+     * @param findings
+     * @param node
+     * @return
+     */
+    private boolean containsNode(NodeList findings, Node node) {
+        for (int i = 0; i < findings.getLength(); i++) {
+            if (findings.item(i).equals(node)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -86,9 +103,9 @@ public class XpathMappingDataDictionary extends AbstractXmlDataDictionary implem
     @Override
     public void afterPropertiesSet() throws Exception {
         if (getPathMappingStrategy() != null &&
-                !getPathMappingStrategy().equals(PathMappingStrategy.EXACT_MATCH)) {
+                !getPathMappingStrategy().equals(PathMappingStrategy.EXACT)) {
             log.warn(String.format("%s ignores path mapping strategy other than %s",
-                    getClass().getSimpleName(), PathMappingStrategy.EXACT_MATCH));
+                    getClass().getSimpleName(), PathMappingStrategy.EXACT));
         }
 
         super.afterPropertiesSet();

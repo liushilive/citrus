@@ -18,12 +18,11 @@ package com.consol.citrus.dsl.runner;
 
 import com.consol.citrus.TestCase;
 import com.consol.citrus.actions.ExecutePLSQLAction;
-import com.consol.citrus.dsl.builder.BuilderSupport;
-import com.consol.citrus.dsl.builder.ExecutePLSQLBuilder;
 import com.consol.citrus.testng.AbstractTestNGUnitTest;
 import org.mockito.Mockito;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -39,6 +38,7 @@ import static org.mockito.Mockito.*;
  */
 public class ExecutePLSQLTestRunnerTest extends AbstractTestNGUnitTest {
     private JdbcTemplate jdbcTemplate = Mockito.mock(JdbcTemplate.class);
+    private PlatformTransactionManager transactionManager = Mockito.mock(PlatformTransactionManager.class);
     private Resource sqlResource = Mockito.mock(Resource.class);
     
     @Test
@@ -47,22 +47,17 @@ public class ExecutePLSQLTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                plsql(new BuilderSupport<ExecutePLSQLBuilder>() {
-                    @Override
-                    public void configure(ExecutePLSQLBuilder builder) {
-                        builder.jdbcTemplate(jdbcTemplate)
-                                .statement("TEST_STMT_1")
-                                .statement("TEST_STMT_2")
-                                .statement("TEST_STMT_3");
-                    }
-                });
+                plsql(builder -> builder.jdbcTemplate(jdbcTemplate)
+                        .statement("TEST_STMT_1")
+                        .statement("TEST_STMT_2")
+                        .statement("TEST_STMT_3"));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), ExecutePLSQLAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), ExecutePLSQLAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), ExecutePLSQLAction.class);
 
         ExecutePLSQLAction action = (ExecutePLSQLAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "plsql");
@@ -71,6 +66,43 @@ public class ExecutePLSQLTestRunnerTest extends AbstractTestNGUnitTest {
         Assert.assertNull(action.getScript());
         Assert.assertNull(action.getSqlResourcePath());
         Assert.assertEquals(action.getJdbcTemplate(), jdbcTemplate);
+
+        verify(jdbcTemplate).execute("TEST_STMT_1");
+        verify(jdbcTemplate).execute("TEST_STMT_2");
+        verify(jdbcTemplate).execute("TEST_STMT_3");
+    }
+
+    @Test
+    public void testExecutePLSQLBuilderWithTransaction() {
+        reset(jdbcTemplate, transactionManager);
+        MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
+            @Override
+            public void execute() {
+                plsql(builder -> builder.jdbcTemplate(jdbcTemplate)
+                        .transactionManager(transactionManager)
+                        .transactionTimeout(5000)
+                        .transactionIsolationLevel("ISOLATION_READ_COMMITTED")
+                        .statement("TEST_STMT_1")
+                        .statement("TEST_STMT_2")
+                        .statement("TEST_STMT_3"));
+            }
+        };
+
+        TestCase test = builder.getTestCase();
+        Assert.assertEquals(test.getActionCount(), 1);
+        Assert.assertEquals(test.getActions().get(0).getClass(), ExecutePLSQLAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), ExecutePLSQLAction.class);
+
+        ExecutePLSQLAction action = (ExecutePLSQLAction)test.getActions().get(0);
+        Assert.assertEquals(action.getName(), "plsql");
+        Assert.assertEquals(action.isIgnoreErrors(), false);
+        Assert.assertEquals(action.getStatements().toString(), "[TEST_STMT_1, TEST_STMT_2, TEST_STMT_3]");
+        Assert.assertNull(action.getScript());
+        Assert.assertNull(action.getSqlResourcePath());
+        Assert.assertEquals(action.getJdbcTemplate(), jdbcTemplate);
+        Assert.assertEquals(action.getTransactionManager(), transactionManager);
+        Assert.assertEquals(action.getTransactionTimeout(), "5000");
+        Assert.assertEquals(action.getTransactionIsolationLevel(), "ISOLATION_READ_COMMITTED");
 
         verify(jdbcTemplate).execute("TEST_STMT_1");
         verify(jdbcTemplate).execute("TEST_STMT_2");
@@ -90,20 +122,15 @@ public class ExecutePLSQLTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                plsql(new BuilderSupport<ExecutePLSQLBuilder>() {
-                    @Override
-                    public void configure(ExecutePLSQLBuilder builder) {
-                        builder.jdbcTemplate(jdbcTemplate)
-                                .sqlResource(sqlResource);
-                    }
-                });
+                plsql(builder -> builder.jdbcTemplate(jdbcTemplate)
+                        .sqlResource(sqlResource));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), ExecutePLSQLAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), ExecutePLSQLAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), ExecutePLSQLAction.class);
 
         ExecutePLSQLAction action = (ExecutePLSQLAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "plsql");
@@ -129,20 +156,15 @@ public class ExecutePLSQLTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                plsql(new BuilderSupport<ExecutePLSQLBuilder>() {
-                    @Override
-                    public void configure(ExecutePLSQLBuilder builder) {
-                        builder.jdbcTemplate(jdbcTemplate)
-                                .sqlResource("classpath:com/consol/citrus/dsl/runner/plsql.sql");
-                    }
-                });
+                plsql(builder -> builder.jdbcTemplate(jdbcTemplate)
+                        .sqlResource("classpath:com/consol/citrus/dsl/runner/plsql.sql"));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), ExecutePLSQLAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), ExecutePLSQLAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), ExecutePLSQLAction.class);
 
         ExecutePLSQLAction action = (ExecutePLSQLAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "plsql");
@@ -164,24 +186,19 @@ public class ExecutePLSQLTestRunnerTest extends AbstractTestNGUnitTest {
         MockTestRunner builder = new MockTestRunner(getClass().getSimpleName(), applicationContext, context) {
             @Override
             public void execute() {
-                plsql(new BuilderSupport<ExecutePLSQLBuilder>() {
-                    @Override
-                    public void configure(ExecutePLSQLBuilder builder) {
-                        builder.jdbcTemplate(jdbcTemplate)
-                                .ignoreErrors(true)
-                                .sqlScript(("TEST_STMT_1\n" +
-                                        "/\n" +
-                                        "TEST_STMT_2\n" +
-                                        "/"));
-                    }
-                });
+                plsql(builder -> builder.jdbcTemplate(jdbcTemplate)
+                        .ignoreErrors(true)
+                        .sqlScript(("TEST_STMT_1\n" +
+                                "/\n" +
+                                "TEST_STMT_2\n" +
+                                "/")));
             }
         };
 
         TestCase test = builder.getTestCase();
         Assert.assertEquals(test.getActionCount(), 1);
         Assert.assertEquals(test.getActions().get(0).getClass(), ExecutePLSQLAction.class);
-        Assert.assertEquals(test.getLastExecutedAction().getClass(), ExecutePLSQLAction.class);
+        Assert.assertEquals(test.getActiveAction().getClass(), ExecutePLSQLAction.class);
 
         ExecutePLSQLAction action = (ExecutePLSQLAction)test.getActions().get(0);
         Assert.assertEquals(action.getName(), "plsql");

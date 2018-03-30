@@ -52,13 +52,14 @@ public class HttpClientParser extends AbstractEndpointParser {
                     "'endpoint-resolver' is required!", element);
         }
 
-        if (element.hasAttribute("rest-template")){
+        if (element.hasAttribute("rest-template")) {
             BeanDefinitionParserUtils.setPropertyReference(endpointConfiguration, element.getAttribute("rest-template"), "restTemplate");
         } else {
             BeanDefinitionParserUtils.setPropertyReference(endpointConfiguration, element.getAttribute("request-factory"), "requestFactory");
         }
 
         BeanDefinitionParserUtils.setPropertyValue(endpointConfiguration, element.getAttribute("request-url"), "requestUrl");
+        BeanDefinitionParserUtils.setPropertyValue(endpointConfiguration, element.getAttribute("default-accept-header"), "defaultAcceptHeader");
 
         String requestMethod = element.getAttribute("request-method");
         if (StringUtils.hasText(requestMethod)) {
@@ -68,10 +69,16 @@ public class HttpClientParser extends AbstractEndpointParser {
         BeanDefinitionParserUtils.setPropertyReference(endpointConfiguration, element.getAttribute("message-converter"), "messageConverter");
         BeanDefinitionParserUtils.setPropertyReference(endpointConfiguration, element.getAttribute("message-correlator"), "correlator");
         BeanDefinitionParserUtils.setPropertyReference(endpointConfiguration, element.getAttribute("endpoint-resolver"), "endpointUriResolver");
-        BeanDefinitionParserUtils.setPropertyValue(endpointConfiguration, element.getAttribute("charset"), "charset");
+
+        if (element.hasAttribute("charset")) {
+            endpointConfiguration.addPropertyValue("charset", element.getAttribute("charset"));
+        }
+
         BeanDefinitionParserUtils.setPropertyValue(endpointConfiguration, element.getAttribute("content-type"), "contentType");
         BeanDefinitionParserUtils.setPropertyValue(endpointConfiguration, element.getAttribute("polling-interval"), "pollingInterval");
+        BeanDefinitionParserUtils.setPropertyValue(endpointConfiguration, element.getAttribute("handle-cookies"), "handleCookies");
 
+        BeanDefinitionParserUtils.setPropertyReference(endpointConfiguration, element.getAttribute("error-handler"), "errorHandler");
         if (element.hasAttribute("error-strategy")) {
             endpointConfiguration.addPropertyValue("errorHandlingStrategy",
                     ErrorHandlingStrategy.fromName(element.getAttribute("error-strategy")));

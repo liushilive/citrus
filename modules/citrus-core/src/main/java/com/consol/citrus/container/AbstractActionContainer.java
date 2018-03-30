@@ -16,28 +16,46 @@
 
 package com.consol.citrus.container;
 
+import com.consol.citrus.Completable;
 import com.consol.citrus.TestAction;
 import com.consol.citrus.actions.AbstractTestAction;
+import com.consol.citrus.context.TestContext;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Abstract base class for all containers holding several embedded test actions.
  * 
  * @author Christoph Deppisch
  */
-public abstract class AbstractActionContainer extends AbstractTestAction implements TestActionContainer {
+public abstract class AbstractActionContainer extends AbstractTestAction implements TestActionContainer, Completable {
+
     /** List of nested actions */
-    protected List<TestAction> actions = new ArrayList<TestAction>();
+    protected List<TestAction> actions = new ArrayList<>();
+
+    /** List of all executed actions during container run  */
+    private List<TestAction> executedActions = new ArrayList<>();
 
     /** Last executed action for error reporting reasons */
-    private TestAction lastExecutedAction;
+    private TestAction activeAction;
     
     @Override
     public AbstractActionContainer setActions(List<TestAction> actions) {
         this. actions = actions;
         return this;
+    }
+
+    @Override
+    public AbstractActionContainer addTestActions(TestAction ... toAdd) {
+        actions.addAll(Arrays.asList(toAdd));
+        return this;
+    }
+
+    @Override
+    public boolean isDone(TestContext context) {
+        return isDisabled(context) || executedActions.stream().filter(action -> action instanceof Completable)
+                                .map(Completable.class::cast)
+                                .allMatch(action -> action.isDone(context));
     }
 
     @Override
@@ -62,13 +80,19 @@ public abstract class AbstractActionContainer extends AbstractTestAction impleme
     }
 
     @Override
-    public TestAction getLastExecutedAction() {
-        return lastExecutedAction;
+    public TestAction getActiveAction() {
+        return activeAction;
     }
 
     @Override
-    public void setLastExecutedAction(TestAction action) {
-        this.lastExecutedAction = action;
+    public void setActiveAction(TestAction action) {
+        this.activeAction = action;
+        this.executedActions.add(action);
+    }
+
+    @Override
+    public List<TestAction> getExecutedActions() {
+        return executedActions;
     }
 
     @Override

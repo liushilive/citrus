@@ -16,6 +16,7 @@
 
 package com.consol.citrus.ws.message.converter;
 
+import com.consol.citrus.Citrus;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.message.*;
@@ -23,7 +24,6 @@ import com.consol.citrus.ws.client.WebServiceEndpointConfiguration;
 import com.consol.citrus.ws.message.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.InputStreamSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UrlPathHelper;
 import org.springframework.ws.WebServiceMessage;
@@ -43,11 +43,14 @@ import org.springframework.xml.transform.StringSource;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.namespace.QName;
 import javax.xml.soap.MimeHeader;
 import javax.xml.soap.MimeHeaders;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -63,6 +66,9 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
 
     /** Logger */
     private static Logger log = LoggerFactory.getLogger(SoapMessageConverter.class);
+
+    /** Default payload source encoding */
+    private String charset = Citrus.CITRUS_FILE_ENCODING;
     
     @Override
     public WebServiceMessage convertOutbound(Message internalMessage, WebServiceEndpointConfiguration endpointConfiguration, TestContext context) {
@@ -110,7 +116,7 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
                 if (QNameUtils.validateQName(headerEntry.getKey())) {
                     headerElement = soapRequest.getSoapHeader().addHeaderElement(QNameUtils.parseQNameString(headerEntry.getKey()));
                 } else {
-                    headerElement = soapRequest.getSoapHeader().addHeaderElement(QNameUtils.createQName("", headerEntry.getKey(), ""));
+                    headerElement = soapRequest.getSoapHeader().addHeaderElement(new QName("", headerEntry.getKey(), ""));
                 }
 
                 headerElement.setText(headerEntry.getValue().toString());
@@ -134,15 +140,16 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
         }
 
         for (final Attachment attachment : soapMessage.getAttachments()) {
-            if (log.isDebugEnabled()) {
-                log.debug(String.format("Adding attachment to SOAP message: '%s' ('%s')", attachment.getContentId(), attachment.getContentType()));
+            String contentId = context.replaceDynamicContentInString(attachment.getContentId());
+            if (!contentId.startsWith("<")) {
+                contentId = "<" + contentId + ">";
             }
 
-            soapRequest.addAttachment(attachment.getContentId(), new InputStreamSource() {
-                public InputStream getInputStream() throws IOException {
-                    return attachment.getInputStream();
-                }
-            }, attachment.getContentType());
+            if (log.isDebugEnabled()) {
+                log.debug(String.format("Adding attachment to SOAP message: '%s' ('%s')", contentId, attachment.getContentType()));
+            }
+
+            soapRequest.addAttachment(contentId, attachment::getInputStream, attachment.getContentType());
         }
     }
 
@@ -159,7 +166,7 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
             if (endpointConfiguration.isKeepSoapEnvelope()) {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 webServiceMessage.writeTo(bos);
-                payload = bos.toString();
+                payload = bos.toString(charset);
             } else if (webServiceMessage.getPayloadSource() != null) {
                 StringResult payloadResult = new StringResult();
 
@@ -178,7 +185,7 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
                 handleInboundSoapMessage((org.springframework.ws.soap.SoapMessage) webServiceMessage, message, endpointConfiguration);
             }
 
-            handleInboundHttpHeaders(message);
+            handleInboundHttpHeaders(message, endpointConfiguration);
 
             return message;
         } catch (TransformerException e) {
@@ -244,7 +251,7 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
      *
      * @param message
      */
-    protected void handleInboundHttpHeaders(SoapMessage message) {
+    protected void handleInboundHttpHeaders(SoapMessage message, WebServiceEndpointConfiguration endpointConfiguration) {
         TransportContext transportContext = TransportContextHolder.getTransportContext();
         if (transportContext == null) {
             log.warn("Unable to get complete set of http request headers - no transport context available");
@@ -255,13 +262,23 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
         if (connection instanceof HttpServletConnection) {
             UrlPathHelper pathHelper = new UrlPathHelper();
             HttpServletConnection servletConnection = (HttpServletConnection) connection;
-            message.setHeader(SoapMessageHeaders.HTTP_REQUEST_URI, pathHelper.getRequestUri(servletConnection.getHttpServletRequest()));
-            message.setHeader(SoapMessageHeaders.HTTP_CONTEXT_PATH, pathHelper.getContextPath(servletConnection.getHttpServletRequest()));
+            HttpServletRequest httpServletRequest = servletConnection.getHttpServletRequest();
+            message.setHeader(SoapMessageHeaders.HTTP_REQUEST_URI, pathHelper.getRequestUri(httpServletRequest));
+            message.setHeader(SoapMessageHeaders.HTTP_CONTEXT_PATH, pathHelper.getContextPath(httpServletRequest));
 
-            String queryParams = pathHelper.getOriginatingQueryString(servletConnection.getHttpServletRequest());
+            String queryParams = pathHelper.getOriginatingQueryString(httpServletRequest);
             message.setHeader(SoapMessageHeaders.HTTP_QUERY_PARAMS, queryParams != null ? queryParams : "");
 
-            message.setHeader(SoapMessageHeaders.HTTP_REQUEST_METHOD, servletConnection.getHttpServletRequest().getMethod().toString());
+            message.setHeader(SoapMessageHeaders.HTTP_REQUEST_METHOD, httpServletRequest.getMethod());
+
+            if (endpointConfiguration.isHandleAttributeHeaders()) {
+                Enumeration<String> attributeNames = httpServletRequest.getAttributeNames();
+                while (attributeNames.hasMoreElements()) {
+                    String attributeName = attributeNames.nextElement();
+                    Object attribute = httpServletRequest.getAttribute(attributeName);
+                    message.setHeader(attributeName, attribute);
+                }
+            }
         } else {
             log.warn("Unable to get complete set of http request headers");
 
@@ -418,11 +435,28 @@ public class SoapMessageConverter implements WebServiceMessageConverter {
             SoapAttachment soapAttachment = SoapAttachment.from(attachment);
 
             if (log.isDebugEnabled()) {
-                log.debug(String.format("SOAP message contains attachment with contentId '%s'", attachment.getContentId()));
+                log.debug(String.format("SOAP message contains attachment with contentId '%s'", soapAttachment.getContentId()));
             }
 
             message.addAttachment(soapAttachment);
         }
     }
 
+    /**
+     * Gets the charset.
+     *
+     * @return
+     */
+    public String getCharset() {
+        return charset;
+    }
+
+    /**
+     * Sets the charset.
+     *
+     * @param charset
+     */
+    public void setCharset(String charset) {
+        this.charset = charset;
+    }
 }

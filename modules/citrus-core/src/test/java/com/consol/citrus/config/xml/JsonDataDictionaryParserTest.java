@@ -16,6 +16,7 @@
 
 package com.consol.citrus.config.xml;
 
+import com.consol.citrus.message.MessageDirection;
 import com.consol.citrus.testng.AbstractBeanDefinitionParserTest;
 import com.consol.citrus.variable.dictionary.DataDictionary;
 import com.consol.citrus.variable.dictionary.json.JsonMappingDataDictionary;
@@ -46,7 +47,8 @@ public class JsonDataDictionaryParserTest extends AbstractBeanDefinitionParserTe
         JsonMappingDataDictionary dictionary = dictionaries.get("dataDictionary1");
         Assert.assertEquals(dictionary.getName(), "dataDictionary1");
         Assert.assertTrue(dictionary.isGlobalScope());
-        Assert.assertEquals(dictionary.getPathMappingStrategy(), DataDictionary.PathMappingStrategy.EXACT_MATCH);
+        Assert.assertEquals(dictionary.getPathMappingStrategy(), DataDictionary.PathMappingStrategy.EXACT);
+        Assert.assertEquals(dictionary.getDirection(), MessageDirection.UNBOUND);
         Assert.assertNull(dictionary.getMappingFile());
         Assert.assertEquals(dictionary.getMappings().size(), 3L);
 
@@ -58,6 +60,7 @@ public class JsonDataDictionaryParserTest extends AbstractBeanDefinitionParserTe
         Assert.assertEquals(dictionary.getName(), "dataDictionary2");
         Assert.assertFalse(dictionary.isGlobalScope());
         Assert.assertEquals(dictionary.getPathMappingStrategy(), DataDictionary.PathMappingStrategy.ENDS_WITH);
+        Assert.assertEquals(dictionary.getDirection(), MessageDirection.INBOUND);
         Assert.assertNull(dictionary.getMappingFile());
         Assert.assertEquals(dictionary.getMappings().size(), 1L);
 
@@ -66,7 +69,7 @@ public class JsonDataDictionaryParserTest extends AbstractBeanDefinitionParserTe
         dictionary = dictionaries.get("dataDictionary3");
         Assert.assertEquals(dictionary.getName(), "dataDictionary3");
         Assert.assertTrue(dictionary.isGlobalScope());
-        Assert.assertEquals(dictionary.getPathMappingStrategy(), DataDictionary.PathMappingStrategy.EXACT_MATCH);
+        Assert.assertEquals(dictionary.getPathMappingStrategy(), DataDictionary.PathMappingStrategy.EXACT);
         Assert.assertNotNull(dictionary.getMappingFile());
         Assert.assertEquals(dictionary.getMappings().size(), 2L);
 

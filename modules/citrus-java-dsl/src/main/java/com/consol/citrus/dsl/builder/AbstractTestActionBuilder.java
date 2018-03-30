@@ -38,12 +38,22 @@ public abstract class AbstractTestActionBuilder<T extends TestAction> implements
     }
 
     /**
-     * Sets the description of the test.
+     * Sets the description of the test action.
      * @param description
      * @return
      */
     public AbstractTestActionBuilder<T> description(String description) {
         action.setDescription(description);
+        return this;
+    }
+
+    /**
+     * Sets the actor this action is related with.
+     * @param actor
+     * @return
+     */
+    public AbstractTestActionBuilder<T> actor(TestActor actor) {
+        action.setActor(actor);
         return this;
     }
 
@@ -82,6 +92,12 @@ public abstract class AbstractTestActionBuilder<T extends TestAction> implements
     }
 
     @Override
+    public TestAction setActor(TestActor actor) {
+        action.setActor(actor);
+        return this;
+    }
+
+    @Override
     public final String getDescription() {
         return action.getDescription();
     }
@@ -91,5 +107,4 @@ public abstract class AbstractTestActionBuilder<T extends TestAction> implements
         action.setDescription(description);
         return this;
     }
-
 }

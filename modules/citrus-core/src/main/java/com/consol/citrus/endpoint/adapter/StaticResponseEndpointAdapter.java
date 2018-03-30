@@ -16,6 +16,8 @@
 
 package com.consol.citrus.endpoint.adapter;
 
+import com.consol.citrus.Citrus;
+import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
 import com.consol.citrus.message.DefaultMessage;
 import com.consol.citrus.message.Message;
@@ -24,6 +26,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,23 +44,30 @@ public class StaticResponseEndpointAdapter extends StaticEndpointAdapter {
     /** Payload resource as file path */
     private String messagePayloadResource;
 
+    /** Charset applied to payload resource */
+    private String messagePayloadResourceCharset = Citrus.CITRUS_FILE_ENCODING;
+
     /** Response message header */
     private Map<String, Object> messageHeader = new HashMap<String, Object>();
 
     @Override
-    public Message handleMessageInternal(Message message) {
+    public Message handleMessageInternal(Message request) {
         String payload;
+
+        TestContext context = getTestContext();
+        context.getMessageStore().storeMessage("request", request);
         if (StringUtils.hasText(messagePayloadResource)) {
             try {
-                payload = FileUtils.readToString(new PathMatchingResourcePatternResolver().getResource(messagePayloadResource));
+                payload = context.replaceDynamicContentInString(FileUtils.readToString(new PathMatchingResourcePatternResolver().getResource(messagePayloadResource),
+                        Charset.forName(context.replaceDynamicContentInString(messagePayloadResourceCharset))));
             } catch (IOException e) {
                 throw new CitrusRuntimeException("Failed to read message payload file resource", e);
             }
         } else {
-            payload = messagePayload;
+            payload = context.replaceDynamicContentInString(messagePayload);
         }
 
-        return new DefaultMessage(payload, messageHeader);
+        return new DefaultMessage(payload, context.resolveDynamicValuesInMap(messageHeader));
     }
 
     /**

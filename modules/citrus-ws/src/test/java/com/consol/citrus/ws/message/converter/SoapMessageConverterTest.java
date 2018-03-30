@@ -25,8 +25,6 @@ import com.consol.citrus.ws.client.WebServiceEndpointConfiguration;
 import com.consol.citrus.ws.message.*;
 import com.consol.citrus.ws.message.SoapMessage;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.core.io.InputStreamSource;
 import org.springframework.util.StringUtils;
 import org.springframework.ws.WebServiceMessage;
@@ -34,7 +32,6 @@ import org.springframework.ws.mime.Attachment;
 import org.springframework.ws.soap.*;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
 import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
-import org.springframework.xml.namespace.QNameUtils;
 import org.springframework.xml.transform.StringResult;
 import org.springframework.xml.transform.StringSource;
 import org.testng.Assert;
@@ -195,8 +192,8 @@ public class SoapMessageConverterTest extends AbstractTestNGUnitTest {
         when(soapBody.getPayloadResult()).thenReturn(new StringResult());
 
         when(soapRequest.getSoapHeader()).thenReturn(soapHeader);
-        when(soapHeader.addHeaderElement(eq(QNameUtils.createQName("", "operation", "")))).thenReturn(soapHeaderElement);
-        when(soapHeader.addHeaderElement(eq(QNameUtils.createQName("", "messageId", "")))).thenReturn(soapHeaderElement);
+        when(soapHeader.addHeaderElement(eq(new QName("", "operation", "")))).thenReturn(soapHeaderElement);
+        when(soapHeader.addHeaderElement(eq(new QName("", "messageId", "")))).thenReturn(soapHeaderElement);
 
         soapMessageConverter.convertOutbound(soapRequest, testMessage, new WebServiceEndpointConfiguration(), context);
 
@@ -218,8 +215,8 @@ public class SoapMessageConverterTest extends AbstractTestNGUnitTest {
         when(soapBody.getPayloadResult()).thenReturn(new StringResult());
 
         when(soapRequest.getSoapHeader()).thenReturn(soapHeader);
-        when(soapHeader.addHeaderElement(eq(QNameUtils.createQName("http://www.citrus.com", "operation", "citrus")))).thenReturn(soapHeaderElement);
-        when(soapHeader.addHeaderElement(eq(QNameUtils.createQName("http://www.citrus.com", "messageId", "citrus")))).thenReturn(soapHeaderElement);
+        when(soapHeader.addHeaderElement(eq(new QName("http://www.citrus.com", "operation", "citrus")))).thenReturn(soapHeaderElement);
+        when(soapHeader.addHeaderElement(eq(new QName("http://www.citrus.com", "messageId", "citrus")))).thenReturn(soapHeaderElement);
 
         soapMessageConverter.convertOutbound(soapRequest, testMessage, new WebServiceEndpointConfiguration(), context);
 
@@ -303,21 +300,20 @@ public class SoapMessageConverterTest extends AbstractTestNGUnitTest {
         when(soapRequest.getSoapBody()).thenReturn(soapBody);
         when(soapBody.getPayloadResult()).thenReturn(new StringResult());
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                InputStreamSource contentStream = (InputStreamSource)invocation.getArguments()[1];
-                BufferedReader reader = new BufferedReader(new InputStreamReader(contentStream.getInputStream()));
+        doAnswer(invocation -> {
+            InputStreamSource contentStream = (InputStreamSource)invocation.getArguments()[1];
+            BufferedReader reader = new BufferedReader(new InputStreamReader(contentStream.getInputStream()));
 
-                Assert.assertEquals(reader.readLine(), "This is a SOAP attachment");
-                Assert.assertEquals(reader.readLine(), "with multi-line");
+            Assert.assertEquals(reader.readLine(), "This is a SOAP attachment");
+            Assert.assertEquals(reader.readLine(), "with multi-line");
 
-                reader.close();
-                return null;
-            }
-        }).when(soapRequest).addAttachment(eq(attachment.getContentId()), (InputStreamSource)any(), eq(attachment.getContentType()));
+            reader.close();
+            return null;
+        }).when(soapRequest).addAttachment(eq("<attContentId>"), any(InputStreamSource.class), eq(attachment.getContentType()));
 
         soapMessageConverter.convertOutbound(soapRequest, testMessage, new WebServiceEndpointConfiguration(), context);
+        
+        verify(soapRequest).addAttachment(eq("<attContentId>"), any(InputStreamSource.class), eq(attachment.getContentType()));
 
     }
 
